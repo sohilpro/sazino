@@ -1,0 +1,14 @@
+{
+  "name": "@myapp/shared-types",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  }
+}
