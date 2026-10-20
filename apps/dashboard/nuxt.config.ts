@@ -4,10 +4,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   ssr: false,
-  modules: ['@nuxt/fonts'],
   css: ['~/assets/css/main.css'],
   vite: { plugins: [tailwindcss()] },
-  fonts: { families: [{ name: 'Vazirmatn', provider: 'google' }] },
   runtimeConfig: {
     public: { apiBase: 'http://localhost:4000/api' },
   },
