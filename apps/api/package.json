@@ -4,21 +4,36 @@
   "private": true,
   "scripts": {
     "build": "nest build",
+    "prebuild": "prisma generate",
     "dev": "nest start --watch",
+    "predev": "prisma generate",
     "start": "node dist/main",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pretypecheck": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset"
   },
   "dependencies": {
     "@myapp/shared-types": "*",
     "@nestjs/common": "^12.2.0",
     "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^12.2.0",
+    "@nestjs/jwt": "^12.0.3",
     "@nestjs/platform-express": "^12.2.0",
     "@nestjs/swagger": "^12.0.2",
     "@nestjs/throttler": "^6.7.1",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.3",
     "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
     "pg": "^8.23.1",
@@ -29,8 +44,11 @@
   "devDependencies": {
     "@nestjs/cli": "^12.0.9",
     "@nestjs/schematics": "^12.0.0",
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
-    "@types/pg": "^8.23.1"
+    "@types/pg": "^8.23.1",
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15"
   }
 }

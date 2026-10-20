@@ -17,9 +17,12 @@
     "format:check": "prettier --check .",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
-    "infra:reset": "docker compose down -v"
+    "infra:reset": "docker compose down -v",
+    "db:migrate": "npm run db:migrate -w apps/api --",
+    "db:seed": "npm run db:seed -w apps/api",
+    "db:studio": "npm run db:studio -w apps/api"
   },
-  "packageManager": "npm@$(npm -v)",
+  "packageManager": "npm@11.17.0",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.13.0",

@@ -4,3 +4,4 @@ dist
 .output
 .turbo
 package-lock.json
+apps/api/src/generated
