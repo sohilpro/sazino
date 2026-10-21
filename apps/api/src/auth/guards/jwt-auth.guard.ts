@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
+import { TenantContext } from '../../tenants/tenant-context';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type { JwtPayload, RequestUser } from '../types';
 
@@ -10,6 +11,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly reflector: Reflector,
+    private readonly tenantContext: TenantContext,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -23,12 +25,17 @@ export class JwtAuthGuard implements CanActivate {
     const [scheme, token] = req.headers.authorization?.split(' ') ?? [];
     if (scheme !== 'Bearer' || !token) throw new UnauthorizedException('توکن ارسال نشده است');
 
+    let payload: JwtPayload;
     try {
-      const payload = await this.jwt.verifyAsync<JwtPayload>(token);
-      req.user = { id: payload.sub, tenantId: payload.tenantId, role: payload.role };
+      payload = await this.jwt.verifyAsync<JwtPayload>(token);
     } catch {
       throw new UnauthorizedException('توکن نامعتبر یا منقضی است');
     }
+
+    // اگر درخواست روی Host فروشگاه دیگری آمده باشد، 403
+    this.tenantContext.bindAuthTenant(payload.tenantId);
+
+    req.user = { id: payload.sub, tenantId: payload.tenantId, role: payload.role };
     return true;
   }
 }

@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectTenantDb, type TenantDb } from '../tenants/tenant-db';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(@InjectTenantDb() private readonly db: TenantDb) {}
 
-  /** فقط اعضای همان فروشگاه؛ هرگز passwordHash برنمی‌گردد */
-  listByTenant(tenantId: string) {
-    return this.prisma.user.findMany({
-      where: { tenantId },
+  /** فیلتر tenant خودکار اعمال می‌شود؛ passwordHash هرگز برنمی‌گردد */
+  list() {
+    return this.db.user.findMany({
       select: {
         id: true,
         email: true,

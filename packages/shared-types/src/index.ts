@@ -58,3 +58,10 @@ export interface SubdomainAvailability {
   available: boolean;
   reason?: 'invalid' | 'reserved' | 'taken';
 }
+
+/** اطلاعات عمومی فروشگاه برای ویترین */
+export interface StoreInfo {
+  id: string;
+  name: string;
+  subdomain: string;
+}

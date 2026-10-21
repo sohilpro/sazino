@@ -6,11 +6,13 @@ import { validateEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './redis/redis.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { TenantsModule } from './tenants/tenants.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { TenantGuard } from './tenants/tenant.guard';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
     DatabaseModule,
     RedisModule,
     PrismaModule,
+    TenantsModule,
     HealthModule,
     AuthModule,
     UsersModule,
@@ -30,6 +33,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })

@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=20.19"
+    "node": ">=24.9"
   },
   "scripts": {
     "dev": "turbo run dev",
@@ -20,7 +20,8 @@
     "infra:reset": "docker compose down -v",
     "db:migrate": "npm run db:migrate -w apps/api --",
     "db:seed": "npm run db:seed -w apps/api",
-    "db:studio": "npm run db:studio -w apps/api"
+    "db:studio": "npm run db:studio -w apps/api",
+    "test": "turbo run test"
   },
   "packageManager": "npm@11.17.0",
   "devDependencies": {

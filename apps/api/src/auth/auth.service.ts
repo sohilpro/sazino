@@ -21,6 +21,7 @@ import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
 import { TokenService } from './token.service';
 import type { RequestMeta } from './types';
+import { TenantResolver } from '../tenants/tenant-resolver';
 
 export interface AuthResult {
   session: AuthSession;
@@ -36,6 +37,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: TokenService,
+    private readonly tenantResolver: TenantResolver,
   ) {}
 
   // ───────────── ثبت‌نام ─────────────
@@ -76,6 +78,9 @@ export class AuthService {
         });
         return { tenant, user };
       });
+
+      // اگر قبلاً این ساب‌دامین در کش منفی ثبت شده، فوراً پاکش کن
+      await this.tenantResolver.invalidateSubdomain(dto.subdomain);
 
       return this.issue(user, tenant, meta);
     } catch (err) {

@@ -1,6 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UsersService } from './users.service';
 
@@ -12,7 +11,7 @@ export class UsersController {
 
   @Roles('OWNER', 'ADMIN')
   @Get()
-  list(@CurrentUser('tenantId') tenantId: string) {
-    return this.users.listByTenant(tenantId);
+  list() {
+    return this.users.list();
   }
 }
