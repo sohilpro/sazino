@@ -31,6 +31,12 @@ enum DomainStatus {
     FAILED
 }
 
+enum ProductStatus {
+    DRAFT
+    ACTIVE
+    ARCHIVED
+}
+
 /// هر فروشگاه یک Tenant است
 model Tenant {
     id        String       @id @default(uuid(7)) @db.Uuid
@@ -46,6 +52,11 @@ model Tenant {
 
     users   User[]
     domains Domain[]
+
+    categories  Category[]
+    products    Product[]
+    variants    Variant[]
+    inventories Inventory[]
 
     @@map("tenants")
 }
@@ -109,4 +120,90 @@ model RefreshToken {
     @@index([userId])
     @@index([familyId])
     @@map("refresh_tokens")
+}
+
+model Category {
+    id          String   @id @default(uuid(7)) @db.Uuid
+    tenantId    String   @map("tenant_id") @db.Uuid
+    parentId    String?  @map("parent_id") @db.Uuid
+    name        String
+    slug        String
+    description String?
+    position    Int      @default(0)
+    createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+    children Category[] @relation("CategoryTree")
+    products Product[]
+
+    @@unique([tenantId, slug])
+    @@index([tenantId, parentId])
+    @@map("categories")
+}
+
+model Product {
+    id          String        @id @default(uuid(7)) @db.Uuid
+    tenantId    String        @map("tenant_id") @db.Uuid
+    categoryId  String?       @map("category_id") @db.Uuid
+    title       String
+    slug        String
+    description String?       @db.Text
+    status      ProductStatus @default(DRAFT)
+    /// کمترین/بیشترین قیمت تنوع‌ها (دِنرمال؛ همراه تغییر تنوع‌ها به‌روز می‌شود)
+    minPrice    Int           @default(0) @map("min_price")
+    maxPrice    Int           @default(0) @map("max_price")
+    createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+    variants Variant[]
+
+    @@unique([tenantId, slug])
+    /// لازم برای کلید خارجی ترکیبی Variant ← Product
+    @@unique([tenantId, id])
+    @@index([tenantId, status, createdAt])
+    @@index([tenantId, categoryId])
+    @@map("products")
+}
+
+model Variant {
+    id             String   @id @default(uuid(7)) @db.Uuid
+    tenantId       String   @map("tenant_id") @db.Uuid
+    productId      String   @map("product_id") @db.Uuid
+    title          String   @default("پیش‌فرض")
+    sku            String?
+    /// قیمت به کوچک‌ترین واحد پول (تومان)
+    price          Int
+    compareAtPrice Int?     @map("compare_at_price")
+    position       Int      @default(0)
+    createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    product   Product    @relation(fields: [tenantId, productId], references: [tenantId, id], onDelete: Cascade)
+    inventory Inventory?
+
+    @@unique([tenantId, sku])
+    /// لازم برای کلید خارجی ترکیبی Inventory ← Variant
+    @@unique([tenantId, id])
+    @@index([productId])
+    @@map("variants")
+}
+
+model Inventory {
+    id             String   @id @default(uuid(7)) @db.Uuid
+    tenantId       String   @map("tenant_id") @db.Uuid
+    variantId      String   @map("variant_id") @db.Uuid
+    quantity       Int      @default(0)
+    allowBackorder Boolean  @default(false) @map("allow_backorder")
+    updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    variant Variant @relation(fields: [tenantId, variantId], references: [tenantId, id], onDelete: Cascade)
+
+    @@unique([tenantId, variantId])
+    @@map("inventory")
 }

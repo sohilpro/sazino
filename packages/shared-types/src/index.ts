@@ -65,3 +65,70 @@ export interface StoreInfo {
   name: string;
   subdomain: string;
 }
+
+export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+
+export interface PageMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface Paginated<T> {
+  items: T[];
+  meta: PageMeta;
+}
+
+export interface CategoryRefDto {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface CategoryDto {
+  id: string;
+  parentId: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  position: number;
+  /** در پنل همه‌ی محصولات، در ویترین فقط ACTIVE */
+  productCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryDetailDto {
+  category: CategoryDto;
+  parent: CategoryRefDto | null;
+  children: CategoryDto[];
+}
+
+export interface VariantDto {
+  id: string;
+  title: string;
+  sku: string | null;
+  price: number;
+  compareAtPrice: number | null;
+  position: number;
+  inStock: boolean;
+  /** فقط در پنل (ویترین نمی‌بیند) */
+  quantity?: number;
+  allowBackorder?: boolean;
+}
+
+export interface ProductDto {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  status: ProductStatus;
+  category: CategoryRefDto | null;
+  minPrice: number;
+  maxPrice: number;
+  inStock: boolean;
+  variants: VariantDto[];
+  createdAt: string;
+  updatedAt: string;
+}
