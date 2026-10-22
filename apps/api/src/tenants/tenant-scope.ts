@@ -1,5 +1,14 @@
 /** مدل‌هایی که ستون tenantId دارند. با اضافه‌شدن هر مدل جدید با tenantId باید اینجا هم اضافه شود (تست این را اجبار می‌کند) */
-export const SCOPED_MODELS = ['User', 'Domain', 'Category', 'Product', 'Variant', 'Inventory'] as const;
+export const SCOPED_MODELS = [
+  'User',
+  'Domain',
+  'Category',
+  'Product',
+  'Variant',
+  'Inventory',
+  'Media',
+  'ProductImage',
+] as const;
 
 /** خود Tenant؛ روی کلاینت tenant فقط خواندنِ رکورد خودش مجاز است */
 export const ROOT_MODELS = ['Tenant'] as const;

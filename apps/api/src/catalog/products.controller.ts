@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -21,6 +22,7 @@ import {
   UpdateVariantDto,
 } from './product.dto';
 import { ProductsService } from './products.service';
+import { SetProductImagesDto } from '../media/media.dto';
 
 @ApiTags('products')
 @ApiBearerAuth()
@@ -53,6 +55,11 @@ export class ProductsController {
   @HttpCode(204)
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.products.remove(id);
+  }
+
+  @Put(':id/images')
+  setImages(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SetProductImagesDto) {
+    return this.products.setImages(id, dto.mediaIds);
   }
 
   @Post(':id/variants')

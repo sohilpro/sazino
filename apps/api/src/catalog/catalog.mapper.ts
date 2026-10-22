@@ -1,4 +1,11 @@
-import type { CategoryDto, ProductDto, ProductStatus, VariantDto } from '@myapp/shared-types';
+import type {
+  CategoryDto,
+  ImageDto,
+  ImageUrls,
+  ProductDto,
+  ProductStatus,
+  VariantDto,
+} from '@myapp/shared-types';
 
 export interface CategoryRow {
   id: string;
@@ -35,6 +42,11 @@ export interface VariantRow {
   inventory: { quantity: number; allowBackorder: boolean } | null;
 }
 
+export interface ImageRow {
+  tenantId: string;
+  media: { id: string; alt: string | null; width: number; height: number };
+}
+
 export interface ProductRow {
   id: string;
   title: string;
@@ -47,9 +59,15 @@ export interface ProductRow {
   updatedAt: Date;
   category: { id: string; name: string; slug: string } | null;
   variants: VariantRow[];
+  images: ImageRow[];
 }
 
-export function toProductDto(row: ProductRow, opts: { exposeStock: boolean }): ProductDto {
+export interface ProductDtoOptions {
+  exposeStock: boolean;
+  imageUrls: (tenantId: string, mediaId: string) => ImageUrls;
+}
+
+export function toProductDto(row: ProductRow, opts: ProductDtoOptions): ProductDto {
   const variants = row.variants.map((v): VariantDto => {
     const quantity = v.inventory?.quantity ?? 0;
     const allowBackorder = v.inventory?.allowBackorder ?? false;
@@ -65,6 +83,16 @@ export function toProductDto(row: ProductRow, opts: { exposeStock: boolean }): P
     };
   });
 
+  const images = row.images.map(
+    (i): ImageDto => ({
+      id: i.media.id,
+      alt: i.media.alt,
+      width: i.media.width,
+      height: i.media.height,
+      urls: opts.imageUrls(i.tenantId, i.media.id),
+    }),
+  );
+
   return {
     id: row.id,
     title: row.title,
@@ -76,6 +104,7 @@ export function toProductDto(row: ProductRow, opts: { exposeStock: boolean }): P
     maxPrice: row.maxPrice,
     inStock: variants.some((v) => v.inStock),
     variants,
+    images,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

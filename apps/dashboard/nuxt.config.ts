@@ -7,7 +7,10 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   vite: { plugins: [tailwindcss()] },
   runtimeConfig: {
-    public: { apiBase: 'http://localhost:4000/api' },
+    public: {
+      apiBase: 'http://localhost:4000/api',
+      platformDomain: 'localhost',
+    },
   },
   app: {
     head: {

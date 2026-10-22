@@ -58,6 +58,9 @@ model Tenant {
     variants    Variant[]
     inventories Inventory[]
 
+    media         Media[]
+    productImages ProductImage[]
+
     @@map("tenants")
 }
 
@@ -157,9 +160,10 @@ model Product {
     createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-    tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-    category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+    tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    category Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
     variants Variant[]
+    images   ProductImage[]
 
     @@unique([tenantId, slug])
     /// لازم برای کلید خارجی ترکیبی Variant ← Product
@@ -206,4 +210,42 @@ model Inventory {
 
     @@unique([tenantId, variantId])
     @@map("inventory")
+}
+
+model Media {
+    id           String   @id @default(uuid(7)) @db.Uuid
+    tenantId     String   @map("tenant_id") @db.Uuid
+    originalName String   @map("original_name")
+    /// فرمت فایلی که آپلود شده (فایل ذخیره‌شده همیشه image/webp است)
+    mimeType     String   @map("mime_type")
+    sizeBytes    Int      @map("size_bytes")
+    /// ابعاد بعد از اعمال چرخش EXIF
+    width        Int
+    height       Int
+    alt          String?
+    createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    productImages ProductImage[]
+
+    /// لازم برای کلید خارجی ترکیبی ProductImage ← Media
+    @@unique([tenantId, id])
+    @@index([tenantId, createdAt])
+    @@map("media")
+}
+
+model ProductImage {
+    id        String @id @default(uuid(7)) @db.Uuid
+    tenantId  String @map("tenant_id") @db.Uuid
+    productId String @map("product_id") @db.Uuid
+    mediaId   String @map("media_id") @db.Uuid
+    position  Int    @default(0)
+
+    tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    product Product @relation(fields: [tenantId, productId], references: [tenantId, id], onDelete: Cascade)
+    media   Media   @relation(fields: [tenantId, mediaId], references: [tenantId, id], onDelete: Cascade)
+
+    @@unique([productId, mediaId])
+    @@index([mediaId])
+    @@map("product_images")
 }

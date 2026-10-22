@@ -26,12 +26,20 @@ import type {
   UpdateProductDto,
   UpdateVariantDto,
 } from './product.dto';
+import { StorageService } from '../storage/storage.service';
 
 const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
   variants: {
     orderBy: { position: 'asc' },
     include: { inventory: { select: { quantity: true, allowBackorder: true } } },
+  },
+  images: {
+    orderBy: { position: 'asc' },
+    select: {
+      tenantId: true,
+      media: { select: { id: true, alt: true, width: true, height: true } },
+    },
   },
 } as const satisfies Prisma.ProductInclude;
 
@@ -50,7 +58,15 @@ export class ProductsService {
   constructor(
     @InjectTenantDb() private readonly db: TenantDb,
     private readonly ctx: TenantContext,
+    private readonly storage: StorageService,
   ) {}
+
+  private dtoOptions(exposeStock: boolean) {
+    return {
+      exposeStock,
+      imageUrls: (tenantId: string, mediaId: string) => this.storage.imageUrls(tenantId, mediaId),
+    };
+  }
 
   // ───────────── خواندن (پنل) ─────────────
   list(q: ProductListQueryDto): Promise<Paginated<ProductDto>> {
@@ -65,7 +81,7 @@ export class ProductsService {
   async getById(id: string): Promise<ProductDto> {
     const row = await this.db.product.findUnique({ where: { id }, include: productInclude });
     if (!row) throw new NotFoundException('محصول پیدا نشد');
-    return toProductDto(row, { exposeStock: true });
+    return toProductDto(row, this.dtoOptions(true));
   }
 
   // ───────────── خواندن (ویترین) ─────────────
@@ -93,7 +109,7 @@ export class ProductsService {
       include: productInclude,
     });
     if (!row) throw new NotFoundException('محصول پیدا نشد');
-    return toProductDto(row, { exposeStock: false });
+    return toProductDto(row, this.dtoOptions(false));
   }
 
   // ───────────── ساخت و ویرایش محصول ─────────────
@@ -176,6 +192,38 @@ export class ProductsService {
     if (!exists) throw new NotFoundException('محصول پیدا نشد');
     // تنوع‌ها و موجودی توسط دیتابیس حذف می‌شوند (onDelete: Cascade)
     await this.db.product.delete({ where: { id } });
+  }
+
+  // ───────────── تصاویر ─────────────
+  /** کل لیست تصاویر محصول را جایگزین می‌کند؛ ترتیب آرایه = ترتیب نمایش */
+  async setImages(productId: string, mediaIds: string[]): Promise<ProductDto> {
+    const tenantId = this.ctx.require();
+    if (new Set(mediaIds).size !== mediaIds.length) {
+      throw new BadRequestException('تصاویر تکراری است');
+    }
+
+    await this.db.$transaction(async (tx) => {
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+        select: { id: true },
+      });
+      if (!product) throw new NotFoundException('محصول پیدا نشد');
+
+      if (mediaIds.length > 0) {
+        // کلاینت tenant: تصویر فروشگاه دیگر اصلاً شمرده نمی‌شود
+        const found = await tx.media.count({ where: { id: { in: mediaIds } } });
+        if (found !== mediaIds.length) throw new BadRequestException('یک یا چند تصویر نامعتبر است');
+      }
+
+      await tx.productImage.deleteMany({ where: { productId } });
+      if (mediaIds.length > 0) {
+        await tx.productImage.createMany({
+          data: mediaIds.map((mediaId, position) => ({ tenantId, productId, mediaId, position })),
+        });
+      }
+    });
+
+    return this.getById(productId);
   }
 
   // ───────────── تنوع‌ها ─────────────
@@ -314,7 +362,7 @@ export class ProductsService {
     ]);
 
     return {
-      items: rows.map((r) => toProductDto(r, { exposeStock })),
+      items: rows.map((r) => toProductDto(r, this.dtoOptions(exposeStock))),
       meta: buildMeta(q.page, q.limit, total),
     };
   }

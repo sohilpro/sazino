@@ -129,6 +129,33 @@ export interface ProductDto {
   maxPrice: number;
   inStock: boolean;
   variants: VariantDto[];
+  images: ImageDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ImageUrls {
+  /** مربع ۲۰۰×۲۰۰ */
+  thumb: string;
+  /** عرض ۴۸۰ */
+  sm: string;
+  /** عرض ۹۶۰ */
+  md: string;
+  /** عرض ۱۶۰۰ */
+  lg: string;
+}
+
+export interface ImageDto {
+  id: string;
+  alt: string | null;
+  width: number;
+  height: number;
+  urls: ImageUrls;
+}
+
+export interface MediaDto extends ImageDto {
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
 }

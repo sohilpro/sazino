@@ -13,6 +13,8 @@
     "pretypecheck": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "postdb:migrate": "prisma generate",
+    "postdb:reset": "prisma generate",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
@@ -22,6 +24,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1155.0",
     "@myapp/shared-types": "*",
     "@nestjs/common": "^12.2.0",
     "@nestjs/config": "^12.0.1",
@@ -42,6 +45,7 @@
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "sharp": "^0.35.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {
