@@ -94,6 +94,17 @@ const catalogProducts: SeedProduct[] = [
     category: 'لوازم-دیجیتال',
     variants: [{ title: 'پیش‌فرض', sku: 'PB-1', price: 980_000, quantity: 20 }],
   },
+  {
+    title: 'Wireless Mouse',
+    slug: 'wireless-mouse',
+    description: 'ماوس بی‌سیم با دقت بالا و باتری ۶ ماهه.\nدر دو رنگ مشکی و سفید.',
+    status: 'ACTIVE',
+    category: 'لوازم-دیجیتال',
+    variants: [
+      { title: 'مشکی', sku: 'WM-B', price: 550_000, quantity: 7 },
+      { title: 'سفید', sku: 'WM-W', price: 570_000, compareAtPrice: 650_000, quantity: 0 },
+    ],
+  },
 ];
 
 async function seedCatalog(tenantId: string) {

@@ -13,7 +13,7 @@ const initial = computed(() => [...(store.value?.name ?? '?')][0]);
 <template>
   <div class="flex min-h-screen flex-col">
     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
         <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
           <img
             v-if="store?.logoUrl"
@@ -30,7 +30,11 @@ const initial = computed(() => [...(store.value?.name ?? '?')][0]);
           <span class="truncate text-lg font-extrabold">{{ store?.name }}</span>
         </NuxtLink>
 
-        <nav class="flex items-center gap-5 text-sm text-slate-600">
+        <div class="order-3 w-full sm:order-none sm:ms-auto sm:w-72">
+          <SearchBox />
+        </div>
+
+        <nav class="ms-auto flex items-center gap-5 text-sm text-slate-600 sm:ms-0">
           <NuxtLink
             v-for="link in links"
             :key="link.to"

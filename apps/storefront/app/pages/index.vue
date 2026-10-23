@@ -9,11 +9,7 @@ const { data, error } = await useAsyncData('home', async () => {
     api<Paginated<ProductDto>>('/storefront/products', { query: { limit: 12, sort: 'newest' } }),
     api<CategoryDto[]>('/storefront/categories'),
   ]);
-  return {
-    products: products.items,
-    // فقط دسته‌های اصلی که محصول فعال دارند
-    categories: categories.filter((c) => !c.parentId && (c.productCount ?? 0) > 0),
-  };
+  return { products: products.items, categories: visibleRootCategories(categories) };
 });
 
 useSeoMeta({
@@ -39,7 +35,7 @@ useSeoMeta({
       <NuxtLink
         v-for="c in data.categories"
         :key="c.id"
-        :to="{ path: '/products', query: { category: c.slug } }"
+        :to="`/categories/${encodeURIComponent(c.slug)}`"
         class="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm transition hover:border-brand-500 hover:text-brand-700"
       >
         {{ c.name }}
