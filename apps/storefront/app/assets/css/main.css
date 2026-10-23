@@ -1,17 +1,43 @@
 @import 'vazirmatn/misc/Farsi-Digits/Vazirmatn-FD-font-face.css';
 @import 'tailwindcss';
 
-@theme {
-  --font-sans: 'Vazirmatn FD', system-ui, sans-serif;
-
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
+/* مقدار پیش‌فرض؛ ویترین هر فروشگاه آن را روی <html> بازنویسی می‌کند */
+:root {
+  --store-primary: #4f46e5;
+  --store-on-primary: #ffffff;
 }
 
-body {
-  font-family: 'Vazirmatn FD', sans-serif;
-  margin: 0;
+@theme {
+  --font-sans: 'Vazirmatn FD', system-ui, sans-serif;
+}
+
+/* inline: رنگ‌ها در لحظه‌ی استفاده از --store-primary ساخته می‌شوند */
+@theme inline {
+  --color-brand-50: color-mix(in oklab, var(--store-primary) 8%, white);
+  --color-brand-100: color-mix(in oklab, var(--store-primary) 16%, white);
+  --color-brand-500: color-mix(in oklab, var(--store-primary) 88%, white);
+  --color-brand-600: var(--store-primary);
+  --color-brand-700: color-mix(in oklab, var(--store-primary) 85%, black);
+  --color-on-brand: var(--store-on-primary);
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 font-sans text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-on-brand hover:bg-brand-700;
+  }
+  .btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
 }

@@ -153,23 +153,36 @@ describe('Multi-tenancy over HTTP', () => {
       expect(await redis.get(CACHE_PREFIX + host)).toBe(NEGATIVE_MARKER);
     });
 
-    it('serves stale data from cache until it is invalidated', async () => {
+    it('serves the cached tenant status until it is invalidated', async () => {
       const D = await createFixture(prisma, 'd');
       created.push(D);
       const host = subdomainHost(D);
 
-      const first = await get('/api/store', host).expect(200);
-      expect(first.body.name).toBe(D.tenant.name);
+      // کش با وضعیت ACTIVE پر می‌شود
+      await get('/api/store', host).expect(200);
 
-      await prisma.tenant.update({ where: { id: D.tenant.id }, data: { name: 'Renamed' } });
+      await prisma.tenant.update({ where: { id: D.tenant.id }, data: { status: 'SUSPENDED' } });
 
-      const cached = await get('/api/store', host).expect(200);
-      expect(cached.body.name).toBe(D.tenant.name); // هنوز از کش
+      // هنوز از کش (وضعیت قدیمی)
+      await get('/api/store', host).expect(200);
 
       await resolver.invalidateTenant(D.tenant.id);
 
-      const fresh = await get('/api/store', host).expect(200);
-      expect(fresh.body.name).toBe('Renamed');
+      // کش پاک شد؛ تعلیق اعمال می‌شود
+      await get('/api/store', host).expect(403);
+    });
+
+    it('reads store name and branding live from the database (not from the cache)', async () => {
+      const E = await createFixture(prisma, 'e');
+      created.push(E);
+      const host = subdomainHost(E);
+
+      await get('/api/store', host).expect(200); // کش پر می‌شود
+
+      await prisma.tenant.update({ where: { id: E.tenant.id }, data: { name: 'Renamed' } });
+
+      const res = await get('/api/store', host).expect(200);
+      expect(res.body.name).toBe('Renamed');
     });
   });
 

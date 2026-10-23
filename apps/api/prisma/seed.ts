@@ -19,6 +19,8 @@ const stores = [
     owner: { email: 'owner@demo.test', name: 'مالک دمو' },
     editor: { email: 'editor@demo.test', name: 'ویراستار دمو' },
     domain: 'shop.demo.test',
+    primaryColor: '#4f46e5',
+    description: 'فروشگاه نمونه‌ی ما؛ پوشاک و لوازم دیجیتال با ارسال سریع.',
   },
   {
     name: 'فروشگاه اکمی',
@@ -27,6 +29,8 @@ const stores = [
     owner: { email: 'owner@acme.test', name: 'مالک اکمی' },
     editor: { email: 'editor@acme.test', name: 'ویراستار اکمی' },
     domain: 'www.acme.test',
+    primaryColor: '#e11d48',
+    description: 'فروشگاه اکمی؛ رنگ و ظاهر متفاوت برای تست چندفروشگاهی.',
   },
 ];
 
@@ -159,14 +163,20 @@ async function main() {
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 12);
 
   for (const s of stores) {
+    const settings = {
+      primaryColor: s.primaryColor,
+      description: s.description,
+      currency: 'IRT',
+    };
+
     const tenant = await prisma.tenant.upsert({
       where: { subdomain: s.subdomain },
-      update: {},
+      update: { settings },
       create: {
         name: s.name,
         subdomain: s.subdomain,
         plan: s.plan,
-        settings: { primaryColor: '#4f46e5', currency: 'IRT' },
+        settings,
       },
     });
 

@@ -59,11 +59,19 @@ export interface SubdomainAvailability {
   reason?: 'invalid' | 'reserved' | 'taken';
 }
 
+export interface StoreTheme {
+  /** همیشه با فرمت #rrggbb (حروف کوچک) */
+  primaryColor: string;
+}
+
 /** اطلاعات عمومی فروشگاه برای ویترین */
 export interface StoreInfo {
   id: string;
   name: string;
   subdomain: string;
+  description: string | null;
+  logoUrl: string | null;
+  theme: StoreTheme;
 }
 
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';

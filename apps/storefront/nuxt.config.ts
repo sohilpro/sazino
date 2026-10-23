@@ -6,9 +6,10 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   vite: { plugins: [tailwindcss()] },
   runtimeConfig: {
-    public: {
-      apiBase: 'http://localhost:4000/api',
-    },
+    // فقط سمت سرور. در پروداکشن با NUXT_API_ORIGIN مقداردهی می‌شود (مثلاً http://api:4000)
+    apiOrigin: 'http://localhost:4000',
+    // فقط پشت reverse proxy مورد اعتماد true شود (NUXT_TRUST_PROXY=true)
+    trustProxy: false,
   },
   app: {
     head: {
