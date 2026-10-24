@@ -37,6 +37,13 @@ enum ProductStatus {
     ARCHIVED
 }
 
+enum OrderStatus {
+    PENDING
+    PAID
+    SHIPPED
+    CANCELED
+}
+
 /// هر فروشگاه یک Tenant است
 model Tenant {
     id        String       @id @default(uuid(7)) @db.Uuid
@@ -64,6 +71,12 @@ model Tenant {
 
     media         Media[]
     productImages ProductImage[]
+
+    shippingMethods   ShippingMethod[]
+    customerAddresses CustomerAddress[]
+    orderCounter      OrderCounter?
+    orders            Order[]
+    orderItems        OrderItem[]
 
     @@map("tenants")
 }
@@ -270,6 +283,9 @@ model Customer {
     sessions CustomerSession[]
     carts    Cart[]
 
+    addresses CustomerAddress[]
+    orders    Order[]
+
     @@unique([tenantId, phone])
     /// لازم برای کلید خارجی ترکیبی CustomerSession ← Customer
     @@unique([tenantId, id])
@@ -334,4 +350,123 @@ model CartItem {
     @@unique([cartId, variantId])
     @@index([variantId])
     @@map("cart_items")
+}
+
+model ShippingMethod {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  title         String
+  description   String?
+  /// هزینه‌ی ارسال (تومان)
+  fee           Int
+  /// اگر جمع سفارش به این مبلغ برسد، ارسال رایگان می‌شود
+  freeThreshold Int?     @map("free_threshold")
+  isActive      Boolean  @default(true) @map("is_active")
+  position      Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, isActive, position])
+  @@map("shipping_methods")
+}
+
+model CustomerAddress {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  customerId    String   @map("customer_id") @db.Uuid
+  recipientName String   @map("recipient_name")
+  recipientPhone String  @map("recipient_phone")
+  province      String
+  city          String
+  address       String
+  postalCode    String   @map("postal_code")
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([tenantId, customerId])
+  @@map("customer_addresses")
+}
+
+/// شمارنده‌ی شماره‌ی سفارش به ازای هر فروشگاه
+model OrderCounter {
+  tenantId   String @id @map("tenant_id") @db.Uuid
+  lastNumber Int    @map("last_number")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("order_counters")
+}
+
+model Order {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  /// شماره‌ی خوانا برای مشتری و فروشنده (یکتا در هر فروشگاه)
+  number         Int
+  customerId     String      @map("customer_id") @db.Uuid
+  status         OrderStatus @default(PENDING)
+  subtotal       Int
+  shippingFee    Int         @map("shipping_fee")
+  total          Int
+  shippingTitle  String      @map("shipping_title")
+  // snapshot آدرس تحویل (با ویرایش نشانی‌های ذخیره‌شده تغییر نمی‌کند)
+  recipientName  String      @map("recipient_name")
+  recipientPhone String      @map("recipient_phone")
+  province       String
+  city           String
+  address        String
+  postalCode     String      @map("postal_code")
+  note           String?
+  trackingCode   String?     @map("tracking_code")
+  /// CUSTOMER | EXPIRED | SELLER
+  cancelReason   String?     @map("cancel_reason")
+  /// مهلت پرداخت (فقط برای PENDING)
+  expiresAt      DateTime?   @map("expires_at") @db.Timestamptz(3)
+  paidAt         DateTime?   @map("paid_at") @db.Timestamptz(3)
+  shippedAt      DateTime?   @map("shipped_at") @db.Timestamptz(3)
+  canceledAt     DateTime?   @map("canceled_at") @db.Timestamptz(3)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  /// NoAction: حذف کل فروشگاه (Cascade) مشکلی ندارد، ولی حذف مشتریِ دارای سفارش خطا می‌دهد
+  customer Customer    @relation(fields: [tenantId, customerId], references: [tenantId, id], onDelete: NoAction)
+  items    OrderItem[]
+
+  @@unique([tenantId, number])
+  /// لازم برای کلید خارجی ترکیبی OrderItem ← Order
+  @@unique([tenantId, id])
+  @@index([tenantId, customerId, createdAt])
+  @@index([tenantId, status, expiresAt])
+  @@index([tenantId, status, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  tenantId     String  @map("tenant_id") @db.Uuid
+  orderId      String  @map("order_id") @db.Uuid
+  /// بدون کلید خارجی: با حذف محصول یا تنوع، تاریخچه‌ی سفارش می‌ماند
+  productId    String  @map("product_id") @db.Uuid
+  variantId    String  @map("variant_id") @db.Uuid
+  productSlug  String  @map("product_slug")
+  productTitle String  @map("product_title")
+  variantTitle String  @map("variant_title")
+  sku          String?
+  imageUrl     String? @map("image_url")
+  unitPrice    Int     @map("unit_price")
+  quantity     Int
+  lineTotal    Int     @map("line_total")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order  Order  @relation(fields: [tenantId, orderId], references: [tenantId, id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([variantId])
+  @@map("order_items")
 }

@@ -213,3 +213,94 @@ export interface CartDto {
   subtotal: number;
   hasIssues: boolean;
 }
+
+export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELED';
+
+export interface AddressDto {
+  id: string;
+  recipientName: string;
+  recipientPhone: string;
+  province: string;
+  city: string;
+  address: string;
+  postalCode: string;
+  isDefault: boolean;
+}
+
+export interface ShippingMethodDto {
+  id: string;
+  title: string;
+  description: string | null;
+  fee: number;
+  /** جمع سفارش برای ارسال رایگان؛ null = بدون ارسال رایگان */
+  freeThreshold: number | null;
+}
+
+export interface SellerShippingMethodDto extends ShippingMethodDto {
+  isActive: boolean;
+  position: number;
+}
+
+export interface CheckoutQuoteDto {
+  itemCount: number;
+  subtotal: number;
+  shippingFee: number;
+  total: number;
+  /** ارسال به‌خاطر رسیدن به آستانه رایگان شده است */
+  freeShipping: boolean;
+  /** سبد کالای ناموجود یا غیرفعال دارد */
+  hasIssues: boolean;
+}
+
+export interface OrderItemDto {
+  productId: string;
+  productSlug: string;
+  productTitle: string;
+  variantTitle: string;
+  sku: string | null;
+  imageUrl: string | null;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface OrderAddressDto {
+  recipientName: string;
+  recipientPhone: string;
+  province: string;
+  city: string;
+  address: string;
+  postalCode: string;
+}
+
+export interface OrderDto {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  items: OrderItemDto[];
+  subtotal: number;
+  shippingFee: number;
+  shippingTitle: string;
+  total: number;
+  address: OrderAddressDto;
+  note: string | null;
+  trackingCode: string | null;
+  /** CUSTOMER | EXPIRED | SELLER */
+  cancelReason: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  shippedAt: string | null;
+  canceledAt: string | null;
+}
+
+export interface OrderSummaryDto {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  total: number;
+  itemCount: number;
+  /** حداکثر ۳ تصویر کوچک */
+  thumbs: string[];
+  createdAt: string;
+}

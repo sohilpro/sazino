@@ -22,3 +22,9 @@ export function apiErrorMessage(err: unknown, fallback = 'خطایی رخ داد
   if (status === undefined) return 'ارتباط با سرور برقرار نشد';
   return fallback;
 }
+
+/** کد ماشین‌خوان خطای 409 (مثل PRICE_CHANGED) */
+export function codeOf(err: unknown): string | undefined {
+  const v = (err as { data?: { code?: unknown } } | null)?.data?.code;
+  return typeof v === 'string' ? v : undefined;
+}

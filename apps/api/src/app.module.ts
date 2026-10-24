@@ -19,6 +19,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { TenantGuard } from './tenants/tenant.guard';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { AppExceptionFilter } from './common/filters/app-exception.filter';
     CatalogModule,
     MediaModule,
     CustomersModule,
+    OrdersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

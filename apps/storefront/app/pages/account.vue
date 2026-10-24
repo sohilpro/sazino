@@ -53,7 +53,10 @@ async function onLogout() {
   <div class="mx-auto max-w-lg space-y-6">
     <h1 class="text-2xl font-extrabold">حساب من</h1>
 
-    <div v-if="customer" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div
+      v-if="customer"
+      class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
       <div>
         <div class="text-sm text-slate-500">شماره‌ی موبایل</div>
         <div class="font-medium" dir="ltr">{{ customer.phone }}</div>
@@ -72,6 +75,8 @@ async function onLogout() {
         <p v-if="message" class="text-sm text-emerald-700" role="status">{{ message }}</p>
         <button type="submit" class="btn btn-primary" :disabled="saving">ذخیره</button>
       </form>
+
+      <NuxtLink to="/orders" class="btn btn-secondary">سفارش‌های من</NuxtLink>
 
       <button type="button" class="btn btn-secondary" @click="onLogout">خروج از حساب</button>
     </div>

@@ -76,6 +76,10 @@ export class AuthService {
             role: 'OWNER',
           },
         });
+        // فروشگاه تازه‌ساخته با یک روش ارسال پیش‌فرض شروع می‌کند؛ فروشنده بعداً ویرایشش می‌کند
+        await tx.shippingMethod.create({
+          data: { tenantId: tenant.id, title: 'ارسال پیش‌فرض', fee: 50_000, position: 0 },
+        });
         return { tenant, user };
       });
 

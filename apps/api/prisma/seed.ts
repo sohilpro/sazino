@@ -216,6 +216,28 @@ async function main() {
       },
     });
 
+    if ((await prisma.shippingMethod.count({ where: { tenantId: tenant.id } })) === 0) {
+      await prisma.shippingMethod.createMany({
+        data: [
+          {
+            tenantId: tenant.id,
+            title: 'پست پیشتاز',
+            description: 'تحویل ۳ تا ۵ روز کاری؛ رایگان برای خرید بالای ۱٬۵۰۰٬۰۰۰ تومان',
+            fee: 60_000,
+            freeThreshold: 1_500_000,
+            position: 0,
+          },
+          {
+            tenantId: tenant.id,
+            title: 'پیک موتوری (تهران)',
+            description: 'تحویل در همان روز',
+            fee: 90_000,
+            position: 1,
+          },
+        ],
+      });
+    }
+
     console.log(`✔ ${s.subdomain}  (${s.owner.email})`);
   }
 
