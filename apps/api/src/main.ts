@@ -6,10 +6,15 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import type { Env } from './config/env';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+
+  // IP واقعی بازدیدکننده را از x-forwarded-for (که Nuxt می‌فرستد) می‌خواند
+  const proxyHops = config.get('TRUST_PROXY_HOPS', { infer: true });
+  if (proxyHops > 0) app.set('trust proxy', proxyHops);
 
   app.use(helmet());
   app.use(cookieParser());

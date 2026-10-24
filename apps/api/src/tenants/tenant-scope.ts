@@ -8,6 +8,10 @@ export const SCOPED_MODELS = [
   'Inventory',
   'Media',
   'ProductImage',
+  'Customer',
+  'CustomerSession',
+  'Cart',
+  'CartItem',
 ] as const;
 
 /** خود Tenant؛ روی کلاینت tenant فقط خواندنِ رکورد خودش مجاز است */

@@ -34,7 +34,7 @@ const initial = computed(() => [...(store.value?.name ?? '?')][0]);
           <SearchBox />
         </div>
 
-        <nav class="ms-auto flex items-center gap-5 text-sm text-slate-600 sm:ms-0">
+        <nav class="ms-auto flex items-center gap-4 text-sm text-slate-600 sm:ms-0">
           <NuxtLink
             v-for="link in links"
             :key="link.to"
@@ -45,6 +45,8 @@ const initial = computed(() => [...(store.value?.name ?? '?')][0]);
           >
             {{ link.label }}
           </NuxtLink>
+          <AccountLink />
+          <CartButton />
         </nav>
       </div>
     </header>

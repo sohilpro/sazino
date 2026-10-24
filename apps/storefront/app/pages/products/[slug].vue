@@ -51,7 +51,8 @@ watch(
   { immediate: true },
 );
 const selected = computed(
-  () => product.value?.variants.find((v) => v.id === selectedId.value) ?? product.value?.variants[0],
+  () =>
+    product.value?.variants.find((v) => v.id === selectedId.value) ?? product.value?.variants[0],
 );
 const selectedDiscount = computed(() => (selected.value ? variantDiscount(selected.value) : null));
 
@@ -72,7 +73,9 @@ const crumbs = computed<Crumb[]>(() => {
 const description = computed(
   () =>
     plainText(product.value?.description, 160) ||
-    (product.value && store.value ? `خرید ${product.value.title} از ${store.value.name}` : undefined),
+    (product.value && store.value
+      ? `خرید ${product.value.title} از ${store.value.name}`
+      : undefined),
 );
 const mainImage = computed(() => product.value?.images[0]?.urls.md);
 
@@ -129,7 +132,9 @@ useHead(() => {
 
         <div v-if="selected" class="space-y-1">
           <div class="flex flex-wrap items-baseline gap-3">
-            <span class="text-3xl font-extrabold text-brand-700">{{ formatPrice(selected.price) }}</span>
+            <span class="text-3xl font-extrabold text-brand-700">{{
+              formatPrice(selected.price)
+            }}</span>
             <span v-if="selectedDiscount" class="badge bg-red-600 text-white">
               {{ formatNumber(selectedDiscount.percent) }}٪ تخفیف
             </span>
@@ -165,7 +170,9 @@ useHead(() => {
         <div v-if="selected" class="flex flex-wrap items-center gap-3 text-sm">
           <span
             class="badge"
-            :class="selected.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
+            :class="
+              selected.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+            "
           >
             {{ selected.inStock ? 'موجود' : 'ناموجود' }}
           </span>
@@ -175,6 +182,7 @@ useHead(() => {
         </div>
 
         <!-- دکمه‌ی «افزودن به سبد خرید» در روز ۱۰ اینجا اضافه می‌شود -->
+        <AddToCart :variant="selected" />
 
         <section v-if="product.description" class="space-y-2 border-t border-slate-200 pt-5">
           <h2 class="text-lg font-bold">توضیحات</h2>

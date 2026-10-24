@@ -167,3 +167,49 @@ export interface MediaDto extends ImageDto {
   sizeBytes: number;
   createdAt: string;
 }
+
+export interface CustomerDto {
+  id: string;
+  phone: string;
+  name: string | null;
+  createdAt: string;
+}
+
+export interface CustomerSessionResponse {
+  customer: CustomerDto | null;
+}
+
+export interface OtpRequestResponse {
+  /** عمر کد (ثانیه) */
+  expiresIn: number;
+  /** زمان انتظار تا درخواست مجدد (ثانیه) */
+  resendIn: number;
+}
+
+export type CartItemIssue = 'UNAVAILABLE' | 'OUT_OF_STOCK' | 'INSUFFICIENT_STOCK';
+
+export interface CartItemDto {
+  variantId: string;
+  productId: string;
+  productSlug: string;
+  productTitle: string;
+  variantTitle: string;
+  imageUrl: string | null;
+  imageAlt: string | null;
+  unitPrice: number;
+  compareAtPrice: number | null;
+  quantity: number;
+  lineTotal: number;
+  /** حداکثر تعداد قابل سفارش (موجودی و سقف ۲۰) */
+  maxQuantity: number;
+  issue: CartItemIssue | null;
+}
+
+export interface CartDto {
+  items: CartItemDto[];
+  /** مجموع تعداد همه‌ی آیتم‌ها */
+  itemCount: number;
+  /** جمع آیتم‌های بدون مشکل */
+  subtotal: number;
+  hasIssues: boolean;
+}
