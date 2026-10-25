@@ -20,6 +20,8 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { TenantGuard } from './tenants/tenant.guard';
 import { AppExceptionFilter } from './common/filters/app-exception.filter';
 import { OrdersModule } from './orders/orders.module';
+import { CryptoModule } from './crypto/crypto.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { OrdersModule } from './orders/orders.module';
     MediaModule,
     CustomersModule,
     OrdersModule,
+    CryptoModule,
+    PaymentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

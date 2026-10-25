@@ -13,6 +13,7 @@ const WRITE_RULES: Array<{ prefix: string; methods: string[] }> = [
   { prefix: '/api/storefront/customer', methods: ['PATCH'] },
   { prefix: '/api/storefront/addresses', methods: ['POST', 'PATCH', 'DELETE'] },
   { prefix: '/api/storefront/orders', methods: ['POST'] },
+  { prefix: '/api/storefront/payments', methods: ['POST'] },
 ];
 
 const SAFE_METHODS = new Set(['GET', 'HEAD']);

@@ -1,3 +1,5 @@
+import type { IncomingHttpHeaders } from 'node:http';
+
 const HOST_REGEX = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
 const IPV4_REGEX = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
@@ -18,4 +20,13 @@ export function normalizeHost(raw: string | undefined): string | null {
 
 export function isIpv4(host: string): boolean {
   return IPV4_REGEX.test(host);
+}
+
+/** همان ترتیب TenantMiddleware: x-tenant-host، بعد x-forwarded-host، بعد Host (با پورت) */
+export function requestHost(headers: IncomingHttpHeaders): string | undefined {
+  return (
+    firstHeader(headers['x-tenant-host']) ??
+    firstHeader(headers['x-forwarded-host']) ??
+    headers.host
+  );
 }

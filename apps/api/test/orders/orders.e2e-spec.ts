@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Redis } from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { OrdersService } from '../../src/orders/orders.service';
 import { MAX_ADDRESSES, MAX_PENDING_ORDERS } from '../../src/orders/orders.constants';
 import { PrismaService } from '../../src/prisma/prisma.service';
@@ -12,8 +12,14 @@ import { ConsoleSmsDriver } from '../../src/sms/drivers/console.driver';
 import { TenantContext } from '../../src/tenants/tenant-context';
 import { CACHE_PREFIX } from '../../src/tenants/tenant-resolver';
 import { createTestApp } from '../helpers/create-app';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 import { addressBody, createProduct, shopClient, type ProductOpts } from '../helpers/shop';
+import { CartService } from '../../src/customers/cart.service';
 
 describe('Checkout and orders', () => {
   let app: INestApplication;
@@ -43,7 +49,8 @@ describe('Checkout and orders', () => {
     request(app.getHttpServer()).get(`/api/${path}`).set('Authorization', `Bearer ${token}`);
 
   async function addAddress(c: Client, over: Record<string, unknown> = {}, f = A) {
-    return (await shop.call(f, 'post', '/addresses', c.cookie).send(addressBody(over)).expect(201)).body;
+    return (await shop.call(f, 'post', '/addresses', c.cookie).send(addressBody(over)).expect(201))
+      .body;
   }
   async function addToCart(c: Client, variantId: string, quantity = 1, f = A) {
     await shop.call(f, 'post', '/cart/items', c.cookie).send({ variantId, quantity }).expect(200);
@@ -59,8 +66,12 @@ describe('Checkout and orders', () => {
   const place = (c: Client, body: Record<string, unknown>, f = A) =>
     shop.call(f, 'post', '/orders', c.cookie).send(body);
   const quoteTotal = async (c: Client, methodId: string) =>
-    (await shop.call(A, 'get', '/checkout/quote', c.cookie).query({ shippingMethodId: methodId }).expect(200)).body
-      .total as number;
+    (
+      await shop
+        .call(A, 'get', '/checkout/quote', c.cookie)
+        .query({ shippingMethodId: methodId })
+        .expect(200)
+    ).body.total as number;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -79,7 +90,13 @@ describe('Checkout and orders', () => {
       data: { tenantId: A.tenant.id, title: 'پست', fee: 50_000, position: 1 },
     });
     express = await prisma.shippingMethod.create({
-      data: { tenantId: A.tenant.id, title: 'پیک', fee: 90_000, freeThreshold: 500_000, position: 0 },
+      data: {
+        tenantId: A.tenant.id,
+        title: 'پیک',
+        fee: 90_000,
+        freeThreshold: 500_000,
+        position: 0,
+      },
     });
     inactive = await prisma.shippingMethod.create({
       data: { tenantId: A.tenant.id, title: 'غیرفعال', fee: 1000, isActive: false },
@@ -122,7 +139,10 @@ describe('Checkout and orders', () => {
       expect(first.isDefault).toBe(true);
       expect(second.isDefault).toBe(false);
 
-      await shop.call(A, 'patch', `/addresses/${second.id}`, c.cookie).send({ isDefault: true }).expect(200);
+      await shop
+        .call(A, 'patch', `/addresses/${second.id}`, c.cookie)
+        .send({ isDefault: true })
+        .expect(200);
       const list = (await shop.call(A, 'get', '/addresses', c.cookie).expect(200)).body;
       expect(list.map((a: { id: string }) => a.id)).toEqual([second.id, first.id]);
       expect(list.filter((a: { isDefault: boolean }) => a.isDefault)).toHaveLength(1);
@@ -135,7 +155,11 @@ describe('Checkout and orders', () => {
         recipientPhone: '۰۹۱۲۱۲۳۴۵۶۷',
         postalCode: '۱۲۳۴۵-۶۷۸۹۰',
       });
-      expect(a).toMatchObject({ recipientName: 'علی کریمی', recipientPhone: '09121234567', postalCode: '1234567890' });
+      expect(a).toMatchObject({
+        recipientName: 'علی کریمی',
+        recipientPhone: '09121234567',
+        postalCode: '1234567890',
+      });
     });
 
     it('validates the payload', async () => {
@@ -176,9 +200,14 @@ describe('Checkout and orders', () => {
       const address = await addAddress(owner);
 
       expect((await shop.call(A, 'get', '/addresses', other.cookie).expect(200)).body).toEqual([]);
-      await shop.call(A, 'patch', `/addresses/${address.id}`, other.cookie).send({ city: 'hack' }).expect(404);
+      await shop
+        .call(A, 'patch', `/addresses/${address.id}`, other.cookie)
+        .send({ city: 'hack' })
+        .expect(404);
       await shop.call(A, 'delete', `/addresses/${address.id}`, other.cookie).expect(404);
-      expect((await shop.call(A, 'get', '/addresses', owner.cookie).expect(200)).body).toHaveLength(1);
+      expect((await shop.call(A, 'get', '/addresses', owner.cookie).expect(200)).body).toHaveLength(
+        1,
+      );
     });
   });
 
@@ -210,7 +239,9 @@ describe('Checkout and orders', () => {
         .send({ title: 'x y', fee: 1 })
         .expect(403);
 
-      expect((await sellerReq(editorToken)('shipping-methods').expect(200)).body.length).toBeGreaterThan(3);
+      expect(
+        (await sellerReq(editorToken)('shipping-methods').expect(200)).body.length,
+      ).toBeGreaterThan(3);
 
       const patched = await request(app.getHttpServer())
         .patch(`/api/shipping-methods/${created.body.id}`)
@@ -274,7 +305,9 @@ describe('Checkout and orders', () => {
         .expect(201);
       registeredTenants.push(res.body.tenant.id);
 
-      const methods = await prisma.shippingMethod.findMany({ where: { tenantId: res.body.tenant.id } });
+      const methods = await prisma.shippingMethod.findMany({
+        where: { tenantId: res.body.tenant.id },
+      });
       expect(methods).toHaveLength(1);
       expect(methods[0]).toMatchObject({ fee: 50_000, isActive: true });
     });
@@ -284,7 +317,10 @@ describe('Checkout and orders', () => {
   describe('quote', () => {
     it('computes totals on the server', async () => {
       const { c } = await shopper({ price: 100_000 }, 2);
-      const res = await shop.call(A, 'get', '/checkout/quote', c.cookie).query({ shippingMethodId: std.id }).expect(200);
+      const res = await shop
+        .call(A, 'get', '/checkout/quote', c.cookie)
+        .query({ shippingMethodId: std.id })
+        .expect(200);
       expect(res.body).toEqual({
         itemCount: 2,
         subtotal: 200_000,
@@ -297,8 +333,16 @@ describe('Checkout and orders', () => {
 
     it('applies free shipping from the threshold', async () => {
       const { c } = await shopper({ price: 300_000 }, 2);
-      const res = await shop.call(A, 'get', '/checkout/quote', c.cookie).query({ shippingMethodId: express.id }).expect(200);
-      expect(res.body).toMatchObject({ subtotal: 600_000, shippingFee: 0, total: 600_000, freeShipping: true });
+      const res = await shop
+        .call(A, 'get', '/checkout/quote', c.cookie)
+        .query({ shippingMethodId: express.id })
+        .expect(200);
+      expect(res.body).toMatchObject({
+        subtotal: 600_000,
+        shippingFee: 0,
+        total: 600_000,
+        freeShipping: true,
+      });
     });
 
     it('excludes unavailable items and flags the problem', async () => {
@@ -307,14 +351,20 @@ describe('Checkout and orders', () => {
       await addToCart(c, other.variant.id, 1);
       await prisma.product.update({ where: { id: product.id }, data: { status: 'ARCHIVED' } });
 
-      const res = await shop.call(A, 'get', '/checkout/quote', c.cookie).query({ shippingMethodId: std.id }).expect(200);
+      const res = await shop
+        .call(A, 'get', '/checkout/quote', c.cookie)
+        .query({ shippingMethodId: std.id })
+        .expect(200);
       expect(res.body).toMatchObject({ subtotal: 40_000, hasIssues: true });
     });
 
     it('rejects unknown, inactive and foreign methods, and needs a login', async () => {
       const { c } = await shopper();
       for (const id of [inactive.id, foreignMethod.id, randomUUID()]) {
-        await shop.call(A, 'get', '/checkout/quote', c.cookie).query({ shippingMethodId: id }).expect(400);
+        await shop
+          .call(A, 'get', '/checkout/quote', c.cookie)
+          .query({ shippingMethodId: id })
+          .expect(400);
       }
       await shop.call(A, 'get', '/checkout/quote').query({ shippingMethodId: std.id }).expect(401);
     });
@@ -323,11 +373,18 @@ describe('Checkout and orders', () => {
   // ─────────────────────────── ثبت سفارش ───────────────────────────
   describe('placing an order', () => {
     it('creates a pending order with a server-side price, snapshot, reserved stock and an empty cart', async () => {
-      const { c, address, variant } = await shopper({ title: 'تیشرت', price: 100_000, quantity: 10 }, 2);
+      const { c, address, variant } = await shopper(
+        { title: 'تیشرت', price: 100_000, quantity: 10 },
+        2,
+      );
       const total = await quoteTotal(c, std.id);
 
-      const res = await place(c, { addressId: address.id, shippingMethodId: std.id, expectedTotal: total, note: ' زنگ بزنید ' })
-        .expect(201);
+      const res = await place(c, {
+        addressId: address.id,
+        shippingMethodId: std.id,
+        expectedTotal: total,
+        note: ' زنگ بزنید ',
+      }).expect(201);
 
       expect(res.headers['cache-control']).toBe('no-store');
       expect(res.body).toMatchObject({
@@ -342,7 +399,12 @@ describe('Checkout and orders', () => {
       });
       expect(res.body.number).toBeGreaterThanOrEqual(1001);
       expect(res.body.items).toEqual([
-        expect.objectContaining({ productTitle: 'تیشرت', unitPrice: 100_000, quantity: 2, lineTotal: 200_000 }),
+        expect.objectContaining({
+          productTitle: 'تیشرت',
+          unitPrice: 100_000,
+          quantity: 2,
+          lineTotal: 200_000,
+        }),
       ]);
 
       const minutes = (new Date(res.body.expiresAt).getTime() - Date.now()) / 60_000;
@@ -381,11 +443,15 @@ describe('Checkout and orders', () => {
 
       await prisma.variant.update({ where: { id: variant.id }, data: { price: 999_000 } });
       await prisma.product.update({ where: { id: product.id }, data: { title: 'عوض شد' } });
-      await shop.call(A, 'patch', `/addresses/${address.id}`, c.cookie).send({ city: 'شیراز' }).expect(200);
+      await shop
+        .call(A, 'patch', `/addresses/${address.id}`, c.cookie)
+        .send({ city: 'شیراز' })
+        .expect(200);
       await prisma.shippingMethod.update({ where: { id: std.id }, data: { title: 'پست جدید' } });
       await prisma.shippingMethod.update({ where: { id: std.id }, data: { title: 'پست' } });
 
-      const again = (await shop.call(A, 'get', `/orders/${res.body.number}`, c.cookie).expect(200)).body;
+      const again = (await shop.call(A, 'get', `/orders/${res.body.number}`, c.cookie).expect(200))
+        .body;
       expect(again.items[0]).toMatchObject({ productTitle: 'اولیه', unitPrice: 100_000 });
       expect(again.address.city).toBe('تهران');
       expect(again.shippingTitle).toBe('پست');
@@ -397,7 +463,11 @@ describe('Checkout and orders', () => {
       const shown = await quoteTotal(c, std.id);
       await prisma.variant.update({ where: { id: variant.id }, data: { price: 120_000 } });
 
-      const res = await place(c, { addressId: address.id, shippingMethodId: std.id, expectedTotal: shown }).expect(409);
+      const res = await place(c, {
+        addressId: address.id,
+        shippingMethodId: std.id,
+        expectedTotal: shown,
+      }).expect(409);
       expect(res.body).toMatchObject({ code: 'PRICE_CHANGED', total: 170_000 });
 
       expect(await stock(variant.id)).toBe(10);
@@ -407,18 +477,34 @@ describe('Checkout and orders', () => {
 
     it('ignores any attempt to send a client-side price', async () => {
       const { c, address } = await shopper();
-      await place(c, { addressId: address.id, shippingMethodId: std.id, expectedTotal: 1, total: 1, subtotal: 1 }).expect(400);
-      await place(c, { addressId: address.id, shippingMethodId: std.id, expectedTotal: 1 }).expect(409);
+      await place(c, {
+        addressId: address.id,
+        shippingMethodId: std.id,
+        expectedTotal: 1,
+        total: 1,
+        subtotal: 1,
+      }).expect(400);
+      await place(c, { addressId: address.id, shippingMethodId: std.id, expectedTotal: 1 }).expect(
+        409,
+      );
     });
 
     it('rejects an empty cart and a cart with unavailable items', async () => {
       const empty = await shop.login(A);
       const address = await addAddress(empty);
-      await place(empty, { addressId: address.id, shippingMethodId: std.id, expectedTotal: 0 }).expect(400);
+      await place(empty, {
+        addressId: address.id,
+        shippingMethodId: std.id,
+        expectedTotal: 0,
+      }).expect(400);
 
       const { c, address: a2, product } = await shopper();
       await prisma.product.update({ where: { id: product.id }, data: { status: 'ARCHIVED' } });
-      const res = await place(c, { addressId: a2.id, shippingMethodId: std.id, expectedTotal: 0 }).expect(409);
+      const res = await place(c, {
+        addressId: a2.id,
+        shippingMethodId: std.id,
+        expectedTotal: 0,
+      }).expect(409);
       expect(res.body.code).toBe('CART_ISSUES');
     });
 
@@ -428,10 +514,26 @@ describe('Checkout and orders', () => {
       const strangerAddress = await addAddress(stranger);
       const total = await quoteTotal(c, std.id);
 
-      await place(c, { addressId: strangerAddress.id, shippingMethodId: std.id, expectedTotal: total }).expect(400);
-      await place(c, { addressId: randomUUID(), shippingMethodId: std.id, expectedTotal: total }).expect(400);
-      await place(c, { addressId: address.id, shippingMethodId: foreignMethod.id, expectedTotal: total }).expect(400);
-      await place(c, { addressId: address.id, shippingMethodId: inactive.id, expectedTotal: total }).expect(400);
+      await place(c, {
+        addressId: strangerAddress.id,
+        shippingMethodId: std.id,
+        expectedTotal: total,
+      }).expect(400);
+      await place(c, {
+        addressId: randomUUID(),
+        shippingMethodId: std.id,
+        expectedTotal: total,
+      }).expect(400);
+      await place(c, {
+        addressId: address.id,
+        shippingMethodId: foreignMethod.id,
+        expectedTotal: total,
+      }).expect(400);
+      await place(c, {
+        addressId: address.id,
+        shippingMethodId: inactive.id,
+        expectedTotal: total,
+      }).expect(400);
     });
 
     it('validates the payload', async () => {
@@ -442,7 +544,12 @@ describe('Checkout and orders', () => {
         { addressId: 'x', shippingMethodId: std.id, expectedTotal: 1 },
         { addressId: address.id, shippingMethodId: std.id, expectedTotal: -1 },
         { addressId: address.id, shippingMethodId: std.id, expectedTotal: 1.5 },
-        { addressId: address.id, shippingMethodId: std.id, expectedTotal: 1, note: 'x'.repeat(501) },
+        {
+          addressId: address.id,
+          shippingMethodId: std.id,
+          expectedTotal: 1,
+          note: 'x'.repeat(501),
+        },
       ]) {
         await place(c, body).expect(400);
       }
@@ -495,10 +602,43 @@ describe('Checkout and orders', () => {
         ),
       );
 
+    
+
       expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
-      expect(results.find((r) => r.status === 409)!.body.code).toBe('OUT_OF_STOCK');
+      // بازنده بسته به زمان‌بندی یا در بررسی سبد یا در کسر اتمیک موجودی رد می‌شود؛ هر دو درست‌اند
+      expect(['OUT_OF_STOCK', 'CART_ISSUES']).toContain(
+        results.find((r) => r.status === 409)!.body.code,
+      );
       expect(await stock(item.variant.id)).toBe(0);
       expect(await prisma.orderItem.count({ where: { variantId: item.variant.id } })).toBe(1);
+        it('refuses atomically when the stock vanishes after the cart was read', async () => {
+        const { c, address, variant } = await shopper({ quantity: 5 }, 2);
+        const total = await quoteTotal(c, std.id);
+
+        // سبدی که سرور قبل از کم‌شدن موجودی خوانده است
+        const snapshot = (await shop.call(A, 'get', '/cart', c.cookie).expect(200)).body;
+        await prisma.inventory.updateMany({
+          where: { variantId: variant.id },
+          data: { quantity: 1 },
+        });
+        const spy = vi
+          .spyOn(app.get(CartService, { strict: false }), 'view')
+          .mockResolvedValueOnce(snapshot);
+
+        const res = await place(c, {
+          addressId: address.id,
+          shippingMethodId: std.id,
+          expectedTotal: total,
+        }).expect(409);
+        spy.mockRestore();
+
+        expect(res.body.code).toBe('OUT_OF_STOCK');
+        expect(await stock(variant.id)).toBe(1); // کم نشده و منفی هم نشده
+        expect(await prisma.order.count({ where: { customerId: c.customerId } })).toBe(0);
+        expect((await shop.call(A, 'get', '/cart', c.cookie).expect(200)).body.items).toHaveLength(
+          1,
+        );
+      });
     });
 
     it('allows backorder to go negative and gives it back on cancel', async () => {
@@ -550,7 +690,9 @@ describe('Checkout and orders', () => {
       const other = await shop.login(A);
       await shop.call(A, 'get', `/orders/${res.body.number}`, other.cookie).expect(404);
       await shop.call(A, 'post', `/orders/${res.body.number}/cancel`, other.cookie).expect(404);
-      expect((await shop.call(A, 'get', '/orders', other.cookie).expect(200)).body.items).toEqual([]);
+      expect((await shop.call(A, 'get', '/orders', other.cookie).expect(200)).body.items).toEqual(
+        [],
+      );
 
       await shop.call(B, 'get', `/orders/${res.body.number}`, c.cookie).expect(401);
     });
@@ -571,11 +713,19 @@ describe('Checkout and orders', () => {
       }).expect(201);
       expect(await stock(variant.id)).toBe(6);
 
-      const canceled = await shop.call(A, 'post', `/orders/${res.body.number}/cancel`, c.cookie).expect(200);
-      expect(canceled.body).toMatchObject({ status: 'CANCELED', cancelReason: 'CUSTOMER', expiresAt: null });
+      const canceled = await shop
+        .call(A, 'post', `/orders/${res.body.number}/cancel`, c.cookie)
+        .expect(200);
+      expect(canceled.body).toMatchObject({
+        status: 'CANCELED',
+        cancelReason: 'CUSTOMER',
+        expiresAt: null,
+      });
       expect(await stock(variant.id)).toBe(10);
 
-      const again = await shop.call(A, 'post', `/orders/${res.body.number}/cancel`, c.cookie).expect(409);
+      const again = await shop
+        .call(A, 'post', `/orders/${res.body.number}/cancel`, c.cookie)
+        .expect(409);
       expect(again.body.code).toBe('NOT_CANCELABLE');
       expect(await stock(variant.id)).toBe(10);
     });
@@ -602,7 +752,10 @@ describe('Checkout and orders', () => {
       }).expect(201);
       expect(await stock(first.variant.id)).toBe(0);
 
-      await prisma.order.update({ where: { id: res.body.id }, data: { expiresAt: new Date(Date.now() - 1000) } });
+      await prisma.order.update({
+        where: { id: res.body.id },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
 
       // سفارش دیگری در همین فروشگاه ثبت می‌شود و کالای منقضی را آزاد می‌کند
       const second = await shopper();
@@ -641,7 +794,9 @@ describe('Checkout and orders', () => {
       expect(shipped).toMatchObject({ status: 'SHIPPED', trackingCode: 'RX123' });
       expect(shipped.shippedAt).not.toBeNull();
 
-      await expect(run(() => orders.transition(id, 'CANCELED'))).rejects.toMatchObject({ status: 409 });
+      await expect(run(() => orders.transition(id, 'CANCELED'))).rejects.toMatchObject({
+        status: 409,
+      });
       expect(await stock(variant.id)).toBe(7);
     });
 

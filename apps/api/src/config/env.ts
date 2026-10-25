@@ -30,6 +30,14 @@ export const envSchema = z
     MELI_SMS_PASS: optionalText,
     MELI_SMS_PATTERN_OTP: optionalInt,
     MELI_SMS_PATTERN_ORDER: optionalInt,
+    ENCRYPTION_KEY: z.string().refine((v) => Buffer.from(v, 'base64').length === 32, {
+      message: 'ENCRYPTION_KEY must be a base64-encoded 32-byte key',
+    }),
+    PAYMENT_DRIVER: z.enum(['fake', 'zarinpal']).default('fake'),
+    ZARINPAL_SANDBOX: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {
@@ -48,6 +56,14 @@ export const envSchema = z
         code: 'custom',
         path: ['SMS_DRIVER'],
         message: 'the console SMS driver is not allowed in production',
+      });
+    }
+
+    if (env.NODE_ENV === 'production' && env.PAYMENT_DRIVER === 'fake') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENT_DRIVER'],
+        message: 'the fake payment driver is not allowed in production',
       });
     }
   });

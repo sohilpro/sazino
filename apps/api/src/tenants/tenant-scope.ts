@@ -17,6 +17,8 @@ export const SCOPED_MODELS = [
   'OrderCounter',
   'Order',
   'OrderItem',
+  'PaymentGatewayConfig',
+  'Payment',
 ] as const;
 
 /** خود Tenant؛ روی کلاینت tenant فقط خواندنِ رکورد خودش مجاز است */

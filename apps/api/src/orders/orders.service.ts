@@ -35,7 +35,12 @@ import { ShippingService } from './shipping.service';
 
 const MAX_INT = 2_147_483_647;
 
-type OrderWithItems = Prisma.OrderGetPayload<{ include: { items: true } }>;
+const orderInclude = {
+  items: { orderBy: { id: 'asc' } },
+  payments: { where: { status: 'PAID' }, take: 1, select: { refId: true, cardPan: true } },
+} as const satisfies Prisma.OrderInclude;
+
+type OrderWithItems = Prisma.OrderGetPayload<{ include: typeof orderInclude }>;
 
 @Injectable()
 export class OrdersService {
@@ -185,7 +190,7 @@ export class OrdersService {
     }
     const order = await this.db.order.findFirst({
       where: { customerId, number },
-      include: { items: { orderBy: { id: 'asc' } } },
+      include: orderInclude,
     });
     if (!order) throw new NotFoundException('سفارش پیدا نشد');
     return this.toDto(order);
@@ -355,6 +360,9 @@ export class OrdersService {
       },
       note: o.note,
       trackingCode: o.trackingCode,
+      payment: o.payments[0]
+        ? { refId: o.payments[0].refId, cardPan: o.payments[0].cardPan }
+        : null,
       cancelReason: o.cancelReason,
       expiresAt: iso(o.expiresAt),
       createdAt: o.createdAt.toISOString(),

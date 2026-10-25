@@ -285,6 +285,8 @@ export interface OrderDto {
   address: OrderAddressDto;
   note: string | null;
   trackingCode: string | null;
+  /** رسید پرداخت (فقط وقتی پرداخت تأیید شده) */
+  payment: { refId: string | null; cardPan: string | null } | null;
   /** CUSTOMER | EXPIRED | SELLER */
   cancelReason: string | null;
   expiresAt: string | null;
@@ -303,4 +305,24 @@ export interface OrderSummaryDto {
   /** حداکثر ۳ تصویر کوچک */
   thumbs: string[];
   createdAt: string;
+}
+
+export interface PaymentGatewayDto {
+  provider: 'ZARINPAL';
+  configured: boolean;
+  isActive: boolean;
+  /** ۴ کاراکتر آخر شناسه‌ی پذیرنده */
+  merchantHint: string | null;
+}
+
+export interface StartPaymentResponse {
+  /** آدرس صفحه‌ی پرداخت درگاه؛ مرورگر باید به آن برود */
+  paymentUrl: string;
+}
+
+export type PaymentOutcome = 'PAID' | 'FAILED' | 'PENDING_CHECK' | 'NOT_PAYABLE';
+
+export interface PaymentOutcomeDto {
+  outcome: PaymentOutcome;
+  orderNumber: number;
 }

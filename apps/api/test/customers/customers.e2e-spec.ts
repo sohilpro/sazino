@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -9,7 +9,12 @@ import { ConsoleSmsDriver } from '../../src/sms/drivers/console.driver';
 import { CACHE_PREFIX } from '../../src/tenants/tenant-resolver';
 import { cookieHeader, cookieLine, cookieValue } from '../helpers/cookies';
 import { createTestApp } from '../helpers/create-app';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 
 describe('Customer OTP login', () => {
   let app: INestApplication;
@@ -20,12 +25,21 @@ describe('Customer OTP login', () => {
   let B: TenantFixture;
   let phoneSeq = 0;
 
-  const uniquePhone = () => `0912${String(7_000_000 + ++phoneSeq + Math.floor(Math.random() * 1000) * 10).slice(-7)}`;
-  const call = (f: TenantFixture, method: 'get' | 'post' | 'patch', path: string, cookie?: string) => {
-    const req = request(app.getHttpServer())[method](`/api/storefront${path}`).set('Host', subdomainHost(f));
+  const uniquePhone = () =>
+    `0912${String(7_000_000 + ++phoneSeq + Math.floor(Math.random() * 1000) * 10).slice(-7)}`;
+  const call = (
+    f: TenantFixture,
+    method: 'get' | 'post' | 'patch',
+    path: string,
+    cookie?: string,
+  ) => {
+    const req = request(app.getHttpServer())
+      [method](`/api/storefront${path}`)
+      .set('Host', subdomainHost(f));
     return cookie ? req.set('Cookie', cookie) : req;
   };
-  const clearCooldown = (f: TenantFixture, phone: string) => redis.del(`otp:cd:${f.tenant.id}:${phone}`);
+  const clearCooldown = (f: TenantFixture, phone: string) =>
+    redis.del(`otp:cd:${f.tenant.id}:${phone}`);
 
   /** درخواست کد و برگرداندن آن از صندوق پیامک */
   async function requestCode(f: TenantFixture, phone: string): Promise<string> {
@@ -65,7 +79,9 @@ describe('Customer OTP login', () => {
   describe('requesting a code', () => {
     it('sends a 6-digit code to the normalized number', async () => {
       sms.outbox.length = 0;
-      const res = await call(A, 'post', '/auth/otp').send({ phone: '+98 912 700 0001' }).expect(200);
+      const res = await call(A, 'post', '/auth/otp')
+        .send({ phone: '+98 912 700 0001' })
+        .expect(200);
 
       expect(res.body).toEqual({ expiresIn: OTP.TTL, resendIn: OTP.RESEND });
       expect(sms.outbox).toHaveLength(1);
@@ -99,8 +115,22 @@ describe('Customer OTP login', () => {
       await call(A, 'post', '/auth/otp').send({ phone }).expect(429);
     });
 
+    it('limits requests per IP per hour', async () => {
+      await call(A, 'post', '/auth/otp').send({ phone: uniquePhone() }).expect(200);
+
+      // شمارنده‌ی IP را به سقف می‌رسانیم (TTL حفظ می‌شود)
+      const [key] = await redis.keys(`otp:ip:${A.tenant.id}:*`);
+      await redis.set(key!, String(OTP.IP_HOURLY), 'KEEPTTL');
+
+      const res = await call(A, 'post', '/auth/otp').send({ phone: uniquePhone() }).expect(429);
+      expect(res.body.retryAfter).toBeGreaterThan(0);
+
+      await redis.del(key!); // به تست‌های بعدی آسیب نزند
+    });
+
     it('releases the cooldown when the SMS provider fails', async () => {
       const phone = uniquePhone();
+      vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
       const spy = vi.spyOn(sms, 'send').mockRejectedValueOnce(new Error('provider down'));
 
       await call(A, 'post', '/auth/otp').send({ phone }).expect(502);
@@ -191,7 +221,9 @@ describe('Customer OTP login', () => {
     });
 
     it('rejects a code that was never requested', async () => {
-      await call(A, 'post', '/auth/verify').send({ phone: uniquePhone(), code: '123456' }).expect(401);
+      await call(A, 'post', '/auth/verify')
+        .send({ phone: uniquePhone(), code: '123456' })
+        .expect(401);
     });
 
     it('validates the payload', async () => {
@@ -232,14 +264,19 @@ describe('Customer OTP login', () => {
     });
 
     it('returns 404 without a store host', async () => {
-      await request(app.getHttpServer()).post('/api/storefront/auth/otp').send({ phone: uniquePhone() }).expect(404);
+      await request(app.getHttpServer())
+        .post('/api/storefront/auth/otp')
+        .send({ phone: uniquePhone() })
+        .expect(404);
     });
   });
 
   describe('session and profile', () => {
     it('reports no customer without a cookie or with a garbage cookie', async () => {
       expect((await call(A, 'get', '/auth/session').expect(200)).body.customer).toBeNull();
-      const garbage = await call(A, 'get', '/auth/session', 'sf_session=not-a-real-token').expect(200);
+      const garbage = await call(A, 'get', '/auth/session', 'sf_session=not-a-real-token').expect(
+        200,
+      );
       expect(garbage.body.customer).toBeNull();
     });
 
@@ -259,7 +296,9 @@ describe('Customer OTP login', () => {
     it('updates the profile name', async () => {
       const { cookie } = await login(A, uniquePhone());
 
-      const ok = await call(A, 'patch', '/customer', cookie).send({ name: '  علی رضایی  ' }).expect(200);
+      const ok = await call(A, 'patch', '/customer', cookie)
+        .send({ name: '  علی رضایی  ' })
+        .expect(200);
       expect(ok.body.name).toBe('علی رضایی');
       expect((await call(A, 'get', '/customer', cookie).expect(200)).body.name).toBe('علی رضایی');
 

@@ -19,7 +19,11 @@ export interface ProductOpts {
   allowBackorder?: boolean;
 }
 
-export async function createProduct(prisma: PrismaService, f: TenantFixture, opts: ProductOpts = {}) {
+export async function createProduct(
+  prisma: PrismaService,
+  f: TenantFixture,
+  opts: ProductOpts = {},
+) {
   const price = opts.price ?? 100_000;
   const product = await prisma.product.create({
     data: {
@@ -53,15 +57,24 @@ export function shopClient(app: INestApplication, redis: Redis, sms: ConsoleSmsD
     path: string,
     cookie?: string,
   ) => {
-    const req = request(app.getHttpServer())[method](`/api/storefront${path}`).set('Host', subdomainHost(f));
+    const req = request(app.getHttpServer())
+      [method](`/api/storefront${path}`)
+      .set('Host', subdomainHost(f));
     return cookie ? req.set('Cookie', cookie) : req;
   };
 
   async function login(f: TenantFixture, phone = uniquePhone()) {
+    // شمارنده‌ی IP را صفر می‌کنیم: تست‌ها همه از یک IP می‌آیند و ده‌ها بار وارد می‌شوند
+    const ipKeys = await redis.keys(`otp:ip:${f.tenant.id}:*`);
+    if (ipKeys.length) await redis.del(...ipKeys);
     await redis.del(`otp:cd:${f.tenant.id}:${phone}`);
-    sms.outbox.length = 0;
+
     await call(f, 'post', '/auth/otp').send({ phone }).expect(200);
-    const code = sms.outbox[0]!.args[0]!;
+
+    // پیامک را با شماره‌ی خودش پیدا می‌کنیم؛ صندوق را پاک نمی‌کنیم تا ورودهای هم‌زمان قاطی نشوند
+    const message = [...sms.outbox].reverse().find((m) => m.kind === 'otp' && m.to === phone);
+    const code = message!.args[0]!;
+
     const res = await call(f, 'post', '/auth/verify').send({ phone, code }).expect(200);
     return {
       phone,

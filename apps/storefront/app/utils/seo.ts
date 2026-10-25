@@ -37,7 +37,11 @@ export function serializeJsonLd(data: unknown): string {
 }
 
 export function jsonLdScript(data: unknown) {
-  return { type: 'application/ld+json', innerHTML: serializeJsonLd(data), key: 'json-ld' };
+  return {
+    type: 'application/ld+json' as const,
+    innerHTML: serializeJsonLd(data),
+    key: 'json-ld',
+  };
 }
 
 export function jsonLdGraph(...nodes: object[]) {

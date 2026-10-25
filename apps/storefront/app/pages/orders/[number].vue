@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { OrderDto } from '@myapp/shared-types';
+import type { OrderDto, StartPaymentResponse } from '@myapp/shared-types';
 
 useSeoMeta({ title: 'جزئیات سفارش', robots: 'noindex, nofollow' });
 
@@ -17,21 +17,46 @@ const { data: order, error, status } = await useAsyncData(
 );
 
 const justPlaced = computed(() => route.query.placed === '1');
+const paid = computed(() => route.query.paid === '1');
+
 const cancelling = ref(false);
 const cancelError = ref('');
+const paying = ref(false);
+const payError = ref('');
 
 async function cancel() {
-  if (!order.value || !confirm('این سفارش لغو شود؟ موجودی کالاها آزاد می‌شود.')) return;
+  const current = order.value;
+  if (!current || !confirm('این سفارش لغو شود؟ موجودی کالاها آزاد می‌شود.')) return;
+
   cancelError.value = '';
   cancelling.value = true;
   try {
-    order.value = await $fetch<OrderDto>(`/api/storefront/orders/${order.value.number}/cancel`, {
+    order.value = await $fetch<OrderDto>(`/api/storefront/orders/${current.number}/cancel`, {
       method: 'POST',
     });
   } catch (e) {
     cancelError.value = apiErrorMessage(e, 'لغو سفارش ناموفق بود');
   } finally {
     cancelling.value = false;
+  }
+}
+
+async function pay() {
+  const current = order.value;
+  if (!current) return;
+
+  payError.value = '';
+  paying.value = true;
+  try {
+    const res = await $fetch<StartPaymentResponse>(`/api/storefront/orders/${current.number}/pay`, {
+      method: 'POST',
+    });
+    // فقط آدرس http(s) پذیرفته می‌شود
+    if (!/^https?:$/.test(new URL(res.paymentUrl).protocol)) throw new Error('bad url');
+    window.location.href = res.paymentUrl; // دکمه تا ترک صفحه غیرفعال می‌ماند
+  } catch (e) {
+    payError.value = apiErrorMessage(e, 'شروع پرداخت ناموفق بود');
+    paying.value = false;
   }
 }
 </script>
@@ -50,6 +75,13 @@ async function cancel() {
       <p v-if="justPlaced" class="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800" role="status">
         سفارش شما ثبت شد و موجودی کالاها برایتان نگه داشته شده است.
       </p>
+      <p
+        v-if="paid && order.status === 'PAID'"
+        class="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800"
+        role="status"
+      >
+        پرداخت شما با موفقیت انجام شد. از خرید شما سپاسگزاریم.
+      </p>
 
       <header class="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -64,12 +96,14 @@ async function cancel() {
           مهلت پرداخت تا {{ formatDateTime(order.expiresAt) }}؛ پس از آن سفارش لغو می‌شود.
         </p>
         <div class="flex flex-wrap gap-2">
-          <!-- دکمه‌ی پرداخت آنلاین در روز ۱۲ اینجا وصل می‌شود -->
-          <button type="button" class="btn btn-primary" disabled>پرداخت آنلاین (به‌زودی)</button>
-          <button type="button" class="btn btn-secondary" :disabled="cancelling" @click="cancel">
+          <button type="button" class="btn btn-primary" :disabled="paying" @click="pay">
+            {{ paying ? 'در حال انتقال به درگاه…' : 'پرداخت آنلاین' }}
+          </button>
+          <button type="button" class="btn btn-secondary" :disabled="cancelling || paying" @click="cancel">
             لغو سفارش
           </button>
         </div>
+        <p v-if="payError" class="text-sm text-red-700" role="alert">{{ payError }}</p>
         <p v-if="cancelError" class="text-sm text-red-700" role="alert">{{ cancelError }}</p>
       </section>
 
@@ -78,6 +112,10 @@ async function cancel() {
       </p>
       <p v-if="order.status === 'SHIPPED' && order.trackingCode" class="card text-sm">
         کد رهگیری مرسوله: <b dir="ltr">{{ order.trackingCode }}</b>
+      </p>
+      <p v-if="order.payment" class="card text-sm">
+        کد پیگیری پرداخت: <b dir="ltr">{{ order.payment.refId }}</b>
+        <span v-if="order.payment.cardPan"> · کارت <span dir="ltr">{{ order.payment.cardPan }}</span></span>
       </p>
 
       <section class="card space-y-3">

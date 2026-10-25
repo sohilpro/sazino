@@ -11,7 +11,7 @@ export const OTP = {
   RESEND: 60,
   MAX_ATTEMPTS: 5,
   PHONE_HOURLY: 5,
-  IP_HOURLY: 30,
+  IP_HOURLY: 100,
   TENANT_DAILY: 1000,
 } as const;
 
