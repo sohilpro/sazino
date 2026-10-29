@@ -14,7 +14,12 @@ import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { ConsoleSmsDriver } from '../../src/sms/drivers/console.driver';
 import { CACHE_PREFIX } from '../../src/tenants/tenant-resolver';
 import { createTestApp } from '../helpers/create-app';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 import { placeOrder, type OrderKit } from '../helpers/orders';
 import { createProduct, shopClient } from '../helpers/shop';
 
@@ -38,13 +43,24 @@ describe('Maintenance jobs', () => {
   const stock = async (variantId: string) =>
     (await prisma.inventory.findFirstOrThrow({ where: { variantId } })).quantity;
   const orderRow = (id: string) => prisma.order.findUniqueOrThrow({ where: { id } });
+  /**
+   * authorityهایی که verify برایشان صدا زده شده. فروشگاه تست بین تست‌ها مشترک است و پرداخت
+   * ماندگار تست قبلی هم (طبق طراحی) دوباره بررسی می‌شود؛ پس هر تست فقط authority خودش را می‌سنجد.
+   */
+  const verifiedAuthorities = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.map((call) => (call[0] as { authority: string }).authority);
 
   /** سفارش + شروع پرداخت (authority در درگاه جعلی ساخته می‌شود)؛ پرداخت به گذشته منتقل می‌شود */
   async function orderWithPayment(minutesAgo: number) {
     const placed = await placeOrder(kitA);
-    await kitA.shop.call(A, 'post', `/orders/${placed.order.number}/pay`, placed.c.cookie).expect(200);
+    await kitA.shop
+      .call(A, 'post', `/orders/${placed.order.number}/pay`, placed.c.cookie)
+      .expect(200);
     const payment = await prisma.payment.findFirstOrThrow({ where: { orderId: placed.order.id } });
-    await prisma.payment.update({ where: { id: payment.id }, data: { createdAt: ago(minutesAgo * MINUTE) } });
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { createdAt: ago(minutesAgo * MINUTE) },
+    });
     return { ...placed, payment };
   }
 
@@ -99,8 +115,14 @@ describe('Maintenance jobs', () => {
       const expired = await placeOrder(kitA, { quantity: 10, qty: 3 });
       const fresh = await placeOrder(kitA, { quantity: 10, qty: 2 });
       const paid = await placeOrder(kitA, { quantity: 10, qty: 1 });
-      await prisma.order.update({ where: { id: paid.order.id }, data: { status: 'PAID', expiresAt: ago(MINUTE) } });
-      await prisma.order.update({ where: { id: expired.order.id }, data: { expiresAt: ago(MINUTE) } });
+      await prisma.order.update({
+        where: { id: paid.order.id },
+        data: { status: 'PAID', expiresAt: ago(MINUTE) },
+      });
+      await prisma.order.update({
+        where: { id: expired.order.id },
+        data: { expiresAt: ago(MINUTE) },
+      });
 
       const count = await maintenance.expireOrders({ tenantId: A.tenant.id });
 
@@ -128,7 +150,10 @@ describe('Maintenance jobs', () => {
     it('works inside the right store only', async () => {
       const a = await placeOrder(kitA);
       const b = await placeOrder(kitB);
-      await prisma.order.updateMany({ where: { id: { in: [a.order.id, b.order.id] } }, data: { expiresAt: ago(MINUTE) } });
+      await prisma.order.updateMany({
+        where: { id: { in: [a.order.id, b.order.id] } },
+        data: { expiresAt: ago(MINUTE) },
+      });
 
       await maintenance.expireOrders({ tenantId: A.tenant.id });
       expect((await orderRow(a.order.id)).status).toBe('CANCELED');
@@ -161,15 +186,17 @@ describe('Maintenance jobs', () => {
       await maintenance.reconcilePayments({ tenantId: A.tenant.id });
 
       expect((await orderRow(order.id)).status).toBe('PENDING');
-      expect((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('INITIATED');
+      expect((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe(
+        'INITIATED',
+      );
     });
 
     it('ignores payments older than the gateway session', async () => {
-      const { order } = await orderWithPayment(90);
+      const { order, payment } = await orderWithPayment(90);
       const spy = vi.spyOn(gateway, 'verify');
       await maintenance.reconcilePayments({ tenantId: A.tenant.id });
 
-      expect(spy).not.toHaveBeenCalled();
+      expect(verifiedAuthorities(spy)).not.toContain(payment.authority);
       expect((await orderRow(order.id)).status).toBe('PENDING');
     });
 
@@ -182,7 +209,7 @@ describe('Maintenance jobs', () => {
       const spy = vi.spyOn(gateway, 'verify');
 
       await maintenance.reconcilePayments({ tenantId: A.tenant.id });
-      expect(spy).not.toHaveBeenCalled();
+      expect(verifiedAuthorities(spy)).not.toContain(payment.authority);
     });
 
     it('marks unknown authorities as failed, then keeps retrying them within the window', async () => {
@@ -212,12 +239,12 @@ describe('Maintenance jobs', () => {
     });
 
     it('skips orders that are no longer pending', async () => {
-      const { c, order } = await orderWithPayment(10);
+      const { c, order, payment } = await orderWithPayment(10);
       await kitA.shop.call(A, 'post', `/orders/${order.number}/cancel`, c.cookie).expect(200);
       const spy = vi.spyOn(gateway, 'verify');
 
       await maintenance.reconcilePayments({ tenantId: A.tenant.id });
-      expect(spy).not.toHaveBeenCalled();
+      expect(verifiedAuthorities(spy)).not.toContain(payment.authority);
     });
   });
 
@@ -225,7 +252,9 @@ describe('Maintenance jobs', () => {
   describe('cleanup', () => {
     it('removes expired sessions, old refresh tokens and abandoned guest carts only', async () => {
       const tenantId = A.tenant.id;
-      const customer = await prisma.customer.create({ data: { tenantId, phone: `0916${Math.floor(1_000_000 + Math.random() * 8_999_999)}` } });
+      const customer = await prisma.customer.create({
+        data: { tenantId, phone: `0916${Math.floor(1_000_000 + Math.random() * 8_999_999)}` },
+      });
       const { variant } = await createProduct(prisma, A);
 
       const session = (expiresAt: Date) =>
@@ -243,34 +272,40 @@ describe('Maintenance jobs', () => {
       const recentExpired = await refresh(ago(MINUTE));
       const liveToken = await refresh(new Date(Date.now() + DAY));
 
-      const cart = (opts: { createdAt: Date; itemAt?: Date; customerId?: string }) =>
-        prisma.cart.create({
+      const cart = async (opts: { createdAt: Date; itemAt?: Date; customerId?: string }) => {
+        const created = await prisma.cart.create({
           data: {
             tenantId,
             customerId: opts.customerId ?? null,
             tokenHash: opts.customerId ? null : randomUUID(),
             createdAt: opts.createdAt,
             updatedAt: opts.createdAt,
-            ...(opts.itemAt
-              ? {
-                  items: {
-                    create: {
-                      tenantId,
-                      variantId: variant.id,
-                      quantity: 1,
-                      createdAt: opts.itemAt,
-                      updatedAt: opts.itemAt,
-                    },
-                  },
-                }
-              : {}),
           },
         });
+        if (opts.itemAt) {
+          // آیتم جدا ساخته می‌شود: کلید خارجی ترکیبی اجازه‌ی tenantId در ساخت تودرتو را نمی‌دهد
+          await prisma.cartItem.create({
+            data: {
+              tenantId,
+              cartId: created.id,
+              variantId: variant.id,
+              quantity: 1,
+              createdAt: opts.itemAt,
+              updatedAt: opts.itemAt,
+            },
+          });
+        }
+        return created;
+      };
       const abandoned = await cart({ createdAt: ago(40 * DAY), itemAt: ago(40 * DAY) });
       const emptyOld = await cart({ createdAt: ago(40 * DAY) });
       const stillUsed = await cart({ createdAt: ago(40 * DAY), itemAt: ago(DAY) });
       const fresh = await cart({ createdAt: ago(DAY), itemAt: ago(DAY) });
-      const customerCart = await cart({ createdAt: ago(60 * DAY), itemAt: ago(60 * DAY), customerId: customer.id });
+      const customerCart = await cart({
+        createdAt: ago(60 * DAY),
+        itemAt: ago(60 * DAY),
+        customerId: customer.id,
+      });
 
       const result = await maintenance.cleanup();
       expect(result.sessions).toBeGreaterThanOrEqual(1);
@@ -278,7 +313,9 @@ describe('Maintenance jobs', () => {
       expect(result.guestCarts).toBeGreaterThanOrEqual(2);
 
       const exists = async (model: 'customerSession' | 'refreshToken' | 'cart', id: string) =>
-        (await (prisma[model] as unknown as { count: (a: object) => Promise<number> }).count({ where: { id } })) === 1;
+        (await (prisma[model] as unknown as { count: (a: object) => Promise<number> }).count({
+          where: { id },
+        })) === 1;
 
       expect(await exists('customerSession', expiredSession.id)).toBe(false);
       expect(await exists('customerSession', liveSession.id)).toBe(true);

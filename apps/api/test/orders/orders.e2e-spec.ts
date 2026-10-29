@@ -602,8 +602,6 @@ describe('Checkout and orders', () => {
         ),
       );
 
-    
-
       expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
       // بازنده بسته به زمان‌بندی یا در بررسی سبد یا در کسر اتمیک موجودی رد می‌شود؛ هر دو درست‌اند
       expect(['OUT_OF_STOCK', 'CART_ISSUES']).toContain(
@@ -611,34 +609,33 @@ describe('Checkout and orders', () => {
       );
       expect(await stock(item.variant.id)).toBe(0);
       expect(await prisma.orderItem.count({ where: { variantId: item.variant.id } })).toBe(1);
-        it('refuses atomically when the stock vanishes after the cart was read', async () => {
-        const { c, address, variant } = await shopper({ quantity: 5 }, 2);
-        const total = await quoteTotal(c, std.id);
+    });
 
-        // سبدی که سرور قبل از کم‌شدن موجودی خوانده است
-        const snapshot = (await shop.call(A, 'get', '/cart', c.cookie).expect(200)).body;
-        await prisma.inventory.updateMany({
-          where: { variantId: variant.id },
-          data: { quantity: 1 },
-        });
-        const spy = vi
-          .spyOn(app.get(CartService, { strict: false }), 'view')
-          .mockResolvedValueOnce(snapshot);
+    it('refuses atomically when the stock vanishes after the cart was read', async () => {
+      const { c, address, variant } = await shopper({ quantity: 5 }, 2);
+      const total = await quoteTotal(c, std.id);
 
-        const res = await place(c, {
-          addressId: address.id,
-          shippingMethodId: std.id,
-          expectedTotal: total,
-        }).expect(409);
-        spy.mockRestore();
-
-        expect(res.body.code).toBe('OUT_OF_STOCK');
-        expect(await stock(variant.id)).toBe(1); // کم نشده و منفی هم نشده
-        expect(await prisma.order.count({ where: { customerId: c.customerId } })).toBe(0);
-        expect((await shop.call(A, 'get', '/cart', c.cookie).expect(200)).body.items).toHaveLength(
-          1,
-        );
+      // سبدی که سرور قبل از کم‌شدن موجودی خوانده است
+      const snapshot = (await shop.call(A, 'get', '/cart', c.cookie).expect(200)).body;
+      await prisma.inventory.updateMany({
+        where: { variantId: variant.id },
+        data: { quantity: 1 },
       });
+      const spy = vi
+        .spyOn(app.get(CartService, { strict: false }), 'view')
+        .mockResolvedValueOnce(snapshot);
+
+      const res = await place(c, {
+        addressId: address.id,
+        shippingMethodId: std.id,
+        expectedTotal: total,
+      }).expect(409);
+      spy.mockRestore();
+
+      expect(res.body.code).toBe('OUT_OF_STOCK');
+      expect(await stock(variant.id)).toBe(1); // کم نشده و منفی هم نشده
+      expect(await prisma.order.count({ where: { customerId: c.customerId } })).toBe(0);
+      expect((await shop.call(A, 'get', '/cart', c.cookie).expect(200)).body.items).toHaveLength(1);
     });
 
     it('allows backorder to go negative and gives it back on cancel', async () => {

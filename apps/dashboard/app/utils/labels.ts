@@ -1,4 +1,3 @@
-import type { ProductStatus, UserRole } from '@myapp/shared-types';
 import type { OrderStatus, ProductStatus, UserRole } from '@myapp/shared-types';
 
 export const ROLE_LABEL: Record<UserRole, string> = {
