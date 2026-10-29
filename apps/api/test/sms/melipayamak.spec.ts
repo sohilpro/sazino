@@ -7,6 +7,7 @@ const settings: Record<string, unknown> = {
   MELI_SMS_PASS: 'super-secret-pass',
   MELI_SMS_PATTERN_OTP: 111,
   MELI_SMS_PATTERN_ORDER: 222,
+  MELI_SMS_PATTERN_SHIPPED: 333,
 };
 const driver = () => new MelipayamakDriver({ get: (key: string) => settings[key] } as never);
 
@@ -61,13 +62,11 @@ describe('MelipayamakDriver', () => {
   it('throws on non-JSON or HTTP failures', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          status: 502,
-          json: async () => Promise.reject(new Error('html')),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: async () => Promise.reject(new Error('html')),
+      }),
     );
     await expect(
       driver().send({ kind: 'otp', to: '09121234567', args: ['1'] }),
@@ -86,5 +85,25 @@ describe('MelipayamakDriver', () => {
     await expect(noPattern.send({ kind: 'order', to: '09121234567', args: ['1'] })).rejects.toThrow(
       'not configured',
     );
+  });
+
+  it('supports only the kinds that have a pattern', () => {
+    expect(driver().supports('otp')).toBe(true);
+    expect(driver().supports('shipped')).toBe(true);
+    const partial = new MelipayamakDriver({
+      get: (k: string) => (k === 'MELI_SMS_PATTERN_OTP' ? 1 : undefined),
+    } as never);
+    expect(partial.supports('otp')).toBe(true);
+    expect(partial.supports('order')).toBe(false);
+    expect(partial.supports('shipped')).toBe(false);
+  });
+
+  it('uses the shipped pattern with two arguments', async () => {
+    const fetchMock = mockFetch({ StrRetStatus: 'Ok' });
+    await driver().send({ kind: 'shipped', to: '09121234567', args: ['1001', 'RX123'] });
+
+    const body = fetchMock.mock.calls[0]![1].body as URLSearchParams;
+    expect(body.get('bodyId')).toBe('333');
+    expect(body.get('text')).toBe('1001;RX123');
   });
 });

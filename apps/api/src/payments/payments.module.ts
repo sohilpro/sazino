@@ -9,9 +9,10 @@ import { PaymentGatewayController } from './payment-gateway.controller';
 import { PaymentGatewayService } from './payment-gateway.service';
 import { PaymentsService } from './payments.service';
 import { StorefrontPaymentsController } from './storefront-payments.controller';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [CustomersModule],
+  imports: [CustomersModule, NotificationsModule],
   controllers: [PaymentGatewayController, StorefrontPaymentsController],
   providers: [
     FakeZarinpalDriver,

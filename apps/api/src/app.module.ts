@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env';
@@ -22,6 +22,12 @@ import { AppExceptionFilter } from './common/filters/app-exception.filter';
 import { OrdersModule } from './orders/orders.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { PaymentsModule } from './payments/payments.module';
+import { BullModule } from '@nestjs/bullmq';
+import { MailModule } from './mail/mail.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { DEFAULT_JOB_OPTIONS, redisConnection } from './jobs/queue.config';
+import type { Env } from './config/env';
 
 @Module({
   imports: [
@@ -34,6 +40,17 @@ import { PaymentsModule } from './payments/payments.module';
       throttlers: [{ ttl: 60_000, limit: 100 }],
       skipIf: () => process.env.NODE_ENV === 'test',
     }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) => ({
+        connection: redisConnection(config.get('REDIS_URL', { infer: true })),
+        prefix: config.get('QUEUE_PREFIX', { infer: true }),
+        defaultJobOptions: DEFAULT_JOB_OPTIONS,
+      }),
+    }),
+    MailModule,
+    MaintenanceModule,
+    NotificationsModule,
     DatabaseModule,
     RedisModule,
     PrismaModule,

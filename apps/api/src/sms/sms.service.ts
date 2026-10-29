@@ -18,6 +18,10 @@ export class SmsService {
       config.get('SMS_DRIVER', { infer: true }) === 'melipayamak' ? melipayamak : consoleDriver;
   }
 
+  supports(kind: SmsKind): boolean {
+    return this.driver.supports(kind);
+  }
+
   /** ارسال عمومی بر اساس نوع پترن */
   send(kind: SmsKind, to: string, args: string[]): Promise<void> {
     return this.driver.send({ kind, to, args });

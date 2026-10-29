@@ -11,6 +11,7 @@ export default defineConfig({
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    globalSetup: ['test/global-setup.ts'],
   },
   // SWC متادیتای دکوراتورها (emitDecoratorMetadata) را برای DI در Nest تولید می‌کند
   plugins: [swc.vite({ module: { type: 'es6' } })],

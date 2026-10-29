@@ -4,6 +4,7 @@ const config = useRuntimeConfig();
 
 const links = [
   { to: '/', label: 'داشبورد', exact: true },
+  { to: '/orders', label: 'سفارش‌ها', exact: false },
   { to: '/products', label: 'محصولات', exact: false },
   { to: '/categories', label: 'دسته‌بندی‌ها', exact: false },
   { to: '/settings/payment', label: 'درگاه پرداخت', exact: false },

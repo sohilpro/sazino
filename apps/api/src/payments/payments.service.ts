@@ -1,10 +1,4 @@
-import {
-  BadGatewayException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadGatewayException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { PaymentOutcomeDto, StartPaymentResponse } from '@myapp/shared-types';
 import { conflict } from '../common/errors';
 import type { Customer } from '../generated/prisma/client';
@@ -19,11 +13,8 @@ import {
   PAYMENT_PROVIDER,
   VERIFY_TX_OPTIONS,
 } from './payments.constants';
-import {
-  GatewayUnavailableError,
-  ZARINPAL_API,
-  type ZarinpalApi,
-} from './gateway/zarinpal.types';
+import { GatewayUnavailableError, ZARINPAL_API, type ZarinpalApi } from './gateway/zarinpal.types';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const MAX_INT = 2_147_483_647;
 
@@ -45,6 +36,7 @@ export class PaymentsService {
     @InjectTenantDb() private readonly db: TenantDb,
     private readonly ctx: TenantContext,
     private readonly gateways: PaymentGatewayService,
+    private readonly notifications: NotificationsService,
     @Inject(ZARINPAL_API) private readonly api: ZarinpalApi,
   ) {}
 
@@ -61,7 +53,14 @@ export class PaymentsService {
 
     const order = await this.db.order.findFirst({
       where: { customerId: customer.id, number: orderNumber },
-      select: { id: true, number: true, status: true, total: true, createdAt: true, expiresAt: true },
+      select: {
+        id: true,
+        number: true,
+        status: true,
+        total: true,
+        createdAt: true,
+        expiresAt: true,
+      },
     });
     if (!order) throw new NotFoundException('سفارش پیدا نشد');
 
@@ -109,7 +108,9 @@ export class PaymentsService {
         mobile: customer.phone,
       });
     } catch (err) {
-      this.logger.error(`Gateway request failed for order ${order.number}: ${(err as Error).message}`);
+      this.logger.error(
+        `Gateway request failed for order ${order.number}: ${(err as Error).message}`,
+      );
       throw new BadGatewayException('ارتباط با درگاه پرداخت برقرار نشد؛ کمی بعد دوباره تلاش کنید');
     }
 
@@ -203,7 +204,11 @@ export class PaymentsService {
         return 'PAID' as const;
       }, VERIFY_TX_OPTIONS);
 
-      if (result === 'PAID') return 'PAID';
+      if (result === 'PAID') {
+        // بعد از commit: خرابی صف نباید پرداخت را خراب کند (خطاها داخل سرویس بلعیده می‌شوند)
+        await this.notifications.orderPaid(this.ctx.require(), payment.orderId);
+        return 'PAID';
+      }
 
       // سفارش PENDING نبود: یا همین پرداخت هم‌زمان تأیید شد، یا سفارش لغو/پرداخت شده است
       const fresh = await this.db.payment.findFirst({

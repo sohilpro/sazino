@@ -1,5 +1,5 @@
 /** نوع پیامک؛ هر نوع یک کد پترن در .env دارد */
-export type SmsKind = 'otp' | 'order';
+export type SmsKind = 'otp' | 'order' | 'shipped';
 
 export interface PatternMessage {
   kind: SmsKind;
@@ -11,6 +11,8 @@ export interface PatternMessage {
 
 export interface SmsDriver {
   send(message: PatternMessage): Promise<void>;
+  /** آیا برای این نوع پیامک امکان ارسال هست (مثلاً پترن تنظیم شده)؟ */
+  supports(kind: SmsKind): boolean;
 }
 
 export class SmsSendError extends Error {

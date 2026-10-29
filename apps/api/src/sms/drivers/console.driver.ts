@@ -14,4 +14,8 @@ export class ConsoleSmsDriver implements SmsDriver {
       this.logger.log(`[console] ${message.kind} → ${message.to}: ${message.args.join(' | ')}`);
     }
   }
+
+  supports(): boolean {
+    return true;
+  }
 }

@@ -35,7 +35,7 @@ import { ShippingService } from './shipping.service';
 
 const MAX_INT = 2_147_483_647;
 
-const orderInclude = {
+export const orderInclude = {
   items: { orderBy: { id: 'asc' } },
   payments: { where: { status: 'PAID' }, take: 1, select: { refId: true, cardPan: true } },
 } as const satisfies Prisma.OrderInclude;
@@ -329,7 +329,7 @@ export class OrdersService {
     }
   }
 
-  private toDto(o: OrderWithItems): OrderDto {
+  toDto(o: OrderWithItems): OrderDto {
     const iso = (d: Date | null) => (d ? d.toISOString() : null);
     return {
       id: o.id,

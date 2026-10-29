@@ -326,3 +326,36 @@ export interface PaymentOutcomeDto {
   outcome: PaymentOutcome;
   orderNumber: number;
 }
+
+export type PaymentProvider = 'ZARINPAL' | 'MANUAL';
+
+export type SellerOrderStats = Record<OrderStatus, number>;
+
+export interface SellerOrderSummaryDto {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  total: number;
+  itemCount: number;
+  customerPhone: string;
+  recipientName: string;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export interface SellerPaymentDto {
+  id: string;
+  provider: PaymentProvider;
+  status: 'INITIATED' | 'PAID' | 'FAILED';
+  amount: number;
+  refId: string | null;
+  cardPan: string | null;
+  gatewayCode: number | null;
+  createdAt: string;
+  verifiedAt: string | null;
+}
+
+export interface SellerOrderDto extends OrderDto {
+  customer: { id: string; phone: string; name: string | null };
+  payments: SellerPaymentDto[];
+}

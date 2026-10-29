@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env';
-import { SmsSendError, type PatternMessage, type SmsDriver } from '../sms.types';
+import { SmsSendError, type PatternMessage, type SmsDriver, type SmsKind } from '../sms.types';
 
 const ENDPOINT = 'https://rest.payamak-panel.com/api/SendSMS/BaseServiceNumber';
 const TIMEOUT_MS = 8000;
@@ -16,11 +16,23 @@ interface MeliResponse {
 export class MelipayamakDriver implements SmsDriver {
   constructor(private readonly config: ConfigService<Env, true>) {}
 
+  private patternFor(kind: SmsKind): number | undefined {
+    switch (kind) {
+      case 'otp':
+        return this.config.get('MELI_SMS_PATTERN_OTP', { infer: true });
+      case 'order':
+        return this.config.get('MELI_SMS_PATTERN_ORDER', { infer: true });
+      case 'shipped':
+        return this.config.get('MELI_SMS_PATTERN_SHIPPED', { infer: true });
+    }
+  }
+
+  supports(kind: SmsKind): boolean {
+    return Boolean(this.patternFor(kind));
+  }
+
   async send(message: PatternMessage): Promise<void> {
-    const bodyId =
-      message.kind === 'otp'
-        ? this.config.get('MELI_SMS_PATTERN_OTP', { infer: true })
-        : this.config.get('MELI_SMS_PATTERN_ORDER', { infer: true });
+    const bodyId = this.patternFor(message.kind);
     if (!bodyId) throw new SmsSendError(`SMS pattern for "${message.kind}" is not configured`);
 
     const body = new URLSearchParams({

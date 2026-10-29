@@ -38,6 +38,14 @@ export const envSchema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
+
+    JOBS_ENABLED: z.enum(['true', 'false']).default('true'),
+    QUEUE_PREFIX: z.string().min(1).default('myapp'),
+    DASHBOARD_URL: z.string().url().default('http://localhost:3001'),
+    MAIL_DRIVER: z.enum(['console', 'smtp', 'none']).default('console'),
+    SMTP_URL: optionalText,
+    MAIL_FROM: optionalText,
+    MELI_SMS_PATTERN_SHIPPED: optionalInt,
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {
@@ -64,6 +72,25 @@ export const envSchema = z
         code: 'custom',
         path: ['PAYMENT_DRIVER'],
         message: 'the fake payment driver is not allowed in production',
+      });
+    }
+
+    if (env.MAIL_DRIVER === 'smtp') {
+      for (const key of ['SMTP_URL', 'MAIL_FROM'] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required when MAIL_DRIVER=smtp`,
+          });
+        }
+      }
+    }
+    if (env.NODE_ENV === 'production' && env.MAIL_DRIVER === 'console') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['MAIL_DRIVER'],
+        message: 'the console mail driver is not allowed in production (use smtp or none)',
       });
     }
   });
