@@ -166,6 +166,90 @@ async function seedCatalog(tenantId: string) {
   console.log('✔ catalog seeded for demo');
 }
 
+async function seedPages(tenantId: string) {
+  const pages = [
+    {
+      slug: 'home',
+      title: 'فروشگاه دمو',
+      blocks: [
+        {
+          id: 'hero',
+          type: 'hero',
+          props: {
+            title: 'به فروشگاه دمو خوش آمدید',
+            subtitle: 'پوشاک و لوازم دیجیتال با ارسال سریع',
+            align: 'center',
+            ctaLabel: 'مشاهده‌ی محصولات',
+            ctaHref: '/products',
+            imageId: null,
+          },
+        },
+        {
+          id: 'latest',
+          type: 'product-grid',
+          props: {
+            title: 'جدیدترین محصولات',
+            source: 'latest',
+            categorySlug: null,
+            limit: 8,
+            columns: 4,
+          },
+        },
+        {
+          id: 'about',
+          type: 'rich-text',
+          props: {
+            content:
+              '# چرا فروشگاه دمو؟\n\nما کالاهای اصل را با بهترین قیمت و ارسال سریع به دست شما می‌رسانیم.\n\n- ضمانت بازگشت کالا\n- پشتیبانی هر روز هفته\n- پرداخت امن',
+            align: 'start',
+          },
+        },
+        {
+          id: 'gadgets',
+          type: 'product-grid',
+          props: {
+            title: 'لوازم دیجیتال',
+            source: 'category',
+            categorySlug: 'لوازم-دیجیتال',
+            limit: 4,
+            columns: 4,
+          },
+        },
+      ],
+    },
+    {
+      slug: 'about',
+      title: 'درباره‌ی ما',
+      blocks: [
+        {
+          id: 'text',
+          type: 'rich-text',
+          props: {
+            content:
+              '# درباره‌ی فروشگاه دمو\n\nاین فروشگاه برای نمایش امکانات پلتفرم ساخته شده است.\n\nبرای تماس با ما از پشتیبانی استفاده کنید.',
+            align: 'start',
+          },
+        },
+      ],
+    },
+  ];
+
+  for (const p of pages) {
+    await prisma.page.upsert({
+      where: { tenantId_slug: { tenantId, slug: p.slug } },
+      update: {}, // ویرایش‌های فروشنده با اجرای دوباره‌ی seed پاک نمی‌شود
+      create: {
+        tenantId,
+        slug: p.slug,
+        title: p.title,
+        blocks: p.blocks as never,
+        publishedAt: new Date(),
+      },
+    });
+  }
+  console.log('✔ pages seeded for demo');
+}
+
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Seed must not run in production');
@@ -243,6 +327,7 @@ async function main() {
 
   const demo = await prisma.tenant.findUniqueOrThrow({ where: { subdomain: 'demo' } });
   await seedCatalog(demo.id);
+  await seedPages(demo.id);
 
   console.log(`\nDev password for all users: ${DEV_PASSWORD}`);
 }

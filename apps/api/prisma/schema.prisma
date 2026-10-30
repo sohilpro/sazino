@@ -92,6 +92,8 @@ model Tenant {
     paymentGatewayConfigs PaymentGatewayConfig[]
     payments              Payment[]
 
+    pages Page[]
+
     @@map("tenants")
 }
 
@@ -533,4 +535,26 @@ model Payment {
     @@index([tenantId, orderId])
     @@index([tenantId, status, createdAt])
     @@map("payments")
+}
+
+/// صفحه‌ی سایت‌ساز (صفحه‌ی اصلی با slug = home). محتوا آرایه‌ای از بلاک‌ها است.
+model Page {
+    id          String    @id @default(uuid(7)) @db.Uuid
+    tenantId    String    @map("tenant_id") @db.Uuid
+    slug        String
+    title       String
+    /// نسخه‌ی منتشرشده؛ فقط همین به بازدیدکننده نمایش داده می‌شود
+    blocks      Json      @default("[]")
+    /// پیش‌نویس در حال ویرایش؛ null یعنی تغییر منتشرنشده‌ای وجود ندارد
+    draftBlocks Json?     @map("draft_blocks")
+    /// null یعنی هنوز منتشر نشده (برای بازدیدکننده وجود ندارد)
+    publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+    createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+    @@unique([tenantId, slug])
+    @@index([tenantId, publishedAt])
+    @@map("pages")
 }

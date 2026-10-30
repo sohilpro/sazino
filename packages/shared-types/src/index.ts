@@ -359,3 +359,95 @@ export interface SellerOrderDto extends OrderDto {
   customer: { id: string; phone: string; name: string | null };
   payments: SellerPaymentDto[];
 }
+
+// ───────────── سایت‌ساز: بلاک‌ها ─────────────
+export type BlockAlign = 'start' | 'center';
+export type GridSource = 'latest' | 'category';
+export type GridColumns = 2 | 3 | 4;
+
+export interface HeroProps {
+  title: string;
+  subtitle: string | null;
+  align: BlockAlign;
+  ctaLabel: string | null;
+  /** مسیر داخلی (/products) یا https:// */
+  ctaHref: string | null;
+}
+
+export interface ProductGridProps {
+  title: string | null;
+  source: GridSource;
+  /** فقط وقتی source = category */
+  categorySlug: string | null;
+  limit: number;
+  columns: GridColumns;
+}
+
+export interface RichTextProps {
+  /** متن ساده: «# عنوان»، «## زیرعنوان»، «- مورد» و پاراگراف‌ها با خط خالی */
+  content: string;
+  align: BlockAlign;
+}
+
+/** شکل ذخیره‌شده در دیتابیس و پنل فروشنده */
+export interface StoredHeroBlock {
+  id: string;
+  type: 'hero';
+  props: HeroProps & { imageId: string | null };
+}
+export interface StoredProductGridBlock {
+  id: string;
+  type: 'product-grid';
+  props: ProductGridProps;
+}
+export interface StoredRichTextBlock {
+  id: string;
+  type: 'rich-text';
+  props: RichTextProps;
+}
+export type StoredBlock = StoredHeroBlock | StoredProductGridBlock | StoredRichTextBlock;
+
+/** شکل آماده‌ی رندر در ویترین (تصویر به آدرس‌ها تبدیل شده) */
+export interface HeroBlock {
+  id: string;
+  type: 'hero';
+  props: HeroProps & { image: ImageDto | null };
+}
+export interface ProductGridBlock {
+  id: string;
+  type: 'product-grid';
+  props: ProductGridProps;
+}
+export interface RichTextBlock {
+  id: string;
+  type: 'rich-text';
+  props: RichTextProps;
+}
+export type PageBlock = HeroBlock | ProductGridBlock | RichTextBlock;
+
+export interface PublicPageDto {
+  slug: string;
+  title: string;
+  publishedAt: string | null;
+  blocks: PageBlock[];
+}
+
+export interface PageSummaryDto {
+  slug: string;
+  title: string;
+  publishedAt: string | null;
+  /** پیش‌نویسی هست که هنوز منتشر نشده، یا صفحه هیچ‌وقت منتشر نشده */
+  hasUnpublishedChanges: boolean;
+  /** صفحه‌ی ذخیره‌نشده‌ی پیش‌فرض (فقط برای home) */
+  isDefault: boolean;
+  updatedAt: string;
+}
+
+export interface PageDto extends PageSummaryDto {
+  /** نسخه‌ی منتشرشده */
+  blocks: StoredBlock[];
+  /** پیش‌نویس در حال ویرایش؛ null یعنی با نسخه‌ی منتشرشده یکی است */
+  draftBlocks: StoredBlock[] | null;
+  /** تصاویر استفاده‌شده در بلاک‌ها (کلید = شناسه‌ی تصویر) */
+  images: Record<string, ImageDto>;
+}

@@ -28,6 +28,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DEFAULT_JOB_OPTIONS, redisConnection } from './jobs/queue.config';
 import type { Env } from './config/env';
+import { PagesModule } from './pages/pages.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import type { Env } from './config/env';
     OrdersModule,
     CryptoModule,
     PaymentsModule,
+    PagesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
