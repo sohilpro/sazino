@@ -17,3 +17,16 @@ export function apiErrorMessage(err: unknown, fallback = 'خطایی رخ داد
   if (status === undefined) return 'ارتباط با سرور برقرار نشد';
   return fallback;
 }
+
+/** کد ماشین‌خوان خطای ۴۰۹ (مثل NOTHING_TO_PUBLISH) */
+export function codeOf(err: unknown): string | undefined {
+  const v = (err as { data?: { code?: unknown } } | null)?.data?.code;
+  return typeof v === 'string' ? v : undefined;
+}
+
+/** همه‌ی پیام‌های خطای API به‌صورت آرایه (پیام اعتبارسنجی بلاک‌ها آرایه است) */
+export function apiErrorMessages(err: unknown): string[] {
+  const message = (err as { data?: { message?: string | string[] } } | null)?.data?.message;
+  if (Array.isArray(message) && message.length) return message;
+  return [apiErrorMessage(err)];
+}

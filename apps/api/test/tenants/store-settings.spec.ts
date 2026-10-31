@@ -1,12 +1,19 @@
 import {
+  DEFAULT_FONT,
   DEFAULT_PRIMARY_COLOR,
   MAX_DESCRIPTION_LENGTH,
+  STORE_FONTS,
   parseStoreSettings,
 } from '../../src/tenants/store-settings';
 
 describe('parseStoreSettings', () => {
   it('returns defaults for empty or invalid input', () => {
-    const expected = { primaryColor: DEFAULT_PRIMARY_COLOR, description: null, logoMediaId: null };
+    const expected = {
+      primaryColor: DEFAULT_PRIMARY_COLOR,
+      description: null,
+      logoMediaId: null,
+      font: DEFAULT_FONT,
+    };
     expect(parseStoreSettings({})).toEqual(expected);
     expect(parseStoreSettings(null)).toEqual(expected);
     expect(parseStoreSettings('text')).toEqual(expected);
@@ -33,6 +40,14 @@ describe('parseStoreSettings', () => {
     ];
     for (const value of unsafe) {
       expect(parseStoreSettings({ primaryColor: value }).primaryColor).toBe(DEFAULT_PRIMARY_COLOR);
+    }
+  });
+
+  it('accepts only fonts from the allow-list', () => {
+    for (const font of STORE_FONTS) expect(parseStoreSettings({ font }).font).toBe(font);
+
+    for (const value of ['Comic Sans', 'Vazirmatn FD; } body { display:none', "x'", '', 42, null, ['Vazirmatn FD']]) {
+      expect(parseStoreSettings({ font: value }).font).toBe(DEFAULT_FONT);
     }
   });
 

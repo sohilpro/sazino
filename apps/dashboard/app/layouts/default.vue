@@ -7,6 +7,8 @@ const links = [
   { to: '/orders', label: 'سفارش‌ها', exact: false },
   { to: '/products', label: 'محصولات', exact: false },
   { to: '/categories', label: 'دسته‌بندی‌ها', exact: false },
+  { to: '/pages', label: 'صفحات', exact: false },
+  { to: '/settings/theme', label: 'ظاهر فروشگاه', exact: false },
   { to: '/settings/payment', label: 'درگاه پرداخت', exact: false },
 ];
 

@@ -22,6 +22,14 @@ export class SavePageDto {
   blocks!: unknown[];
 }
 
+export class PublicPageQueryDto {
+  /** توکن پیش‌نمایش (اختیاری) */
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  preview?: string;
+}
+
 @Injectable()
 export class PageSlugPipe implements PipeTransform<string, string> {
   transform(value: string): string {

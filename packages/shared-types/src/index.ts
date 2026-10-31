@@ -59,9 +59,13 @@ export interface SubdomainAvailability {
   reason?: 'invalid' | 'reserved' | 'taken';
 }
 
+export type StoreFont = 'Vazirmatn FD';
+// export type StoreFont = 'Vazirmatn FD' | 'noto-sans-arabic' | 'noto-naskh-arabic' | 'noto-kufi-arabic';
+
 export interface StoreTheme {
   /** همیشه با فرمت #rrggbb (حروف کوچک) */
   primaryColor: string;
+  font: StoreFont;
 }
 
 /** اطلاعات عمومی فروشگاه برای ویترین */
@@ -430,6 +434,9 @@ export interface PublicPageDto {
   title: string;
   publishedAt: string | null;
   blocks: PageBlock[];
+
+  /** true وقتی نسخه‌ی پیش‌نویس (با توکن پیش‌نمایش) نمایش داده می‌شود */
+  preview: boolean;
 }
 
 export interface PageSummaryDto {
@@ -450,4 +457,20 @@ export interface PageDto extends PageSummaryDto {
   draftBlocks: StoredBlock[] | null;
   /** تصاویر استفاده‌شده در بلاک‌ها (کلید = شناسه‌ی تصویر) */
   images: Record<string, ImageDto>;
+}
+
+export interface StoreSettingsDto {
+  name: string;
+  subdomain: string;
+  description: string | null;
+  primaryColor: string;
+  font: StoreFont;
+  logo: ImageDto | null;
+  /** آدرس ویترین فروشگاه (بدون / پایانی) */
+  storeUrl: string;
+}
+
+export interface PagePreviewDto {
+  url: string;
+  expiresAt: string;
 }

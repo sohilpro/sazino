@@ -6,9 +6,12 @@ export function notFoundError(statusMessage = 'Not Found') {
   return createError({ statusCode: 404, statusMessage, fatal: import.meta.client });
 }
 
-/** خطای API برای صفحه: ۴۰۴ ← صفحه‌ی ۴۰۴، هر چیز دیگر ← ۵۰۲ */
+/** خطای API برای صفحه: ۴۰۴ و ۴۱۰ (پیوند پیش‌نمایش منقضی) همان وضعیت، هر چیز دیگر ← ۵۰۲ */
 export function pageError(err: unknown) {
-  return statusOf(err) === 404
-    ? notFoundError()
-    : createError({ statusCode: 502, statusMessage: 'Bad Gateway', fatal: true });
+  const status = statusOf(err);
+  if (status === 404) return notFoundError();
+  if (status === 410) {
+    return createError({ statusCode: 410, statusMessage: 'Preview Expired', fatal: import.meta.client });
+  }
+  return createError({ statusCode: 502, statusMessage: 'Bad Gateway', fatal: true });
 }

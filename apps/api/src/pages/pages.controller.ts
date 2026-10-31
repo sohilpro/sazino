@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { PageDto, PageSummaryDto } from '@myapp/shared-types';
+import type { PageDto, PagePreviewDto, PageSummaryDto } from '@myapp/shared-types';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PageSlugPipe, SavePageDto } from './page.dto';
 import { PagesService } from './pages.service';
@@ -30,6 +30,12 @@ export class PagesController {
   @HttpCode(200)
   publish(@Param('slug', PageSlugPipe) slug: string): Promise<PageDto> {
     return this.pages.publish(slug);
+  }
+
+  @Post(':slug/preview')
+  @HttpCode(200)
+  preview(@Param('slug', PageSlugPipe) slug: string): Promise<PagePreviewDto> {
+    return this.pages.preview(slug);
   }
 
   @Delete(':slug/draft')

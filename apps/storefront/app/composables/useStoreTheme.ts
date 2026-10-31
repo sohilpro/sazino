@@ -1,4 +1,4 @@
-/** رنگ، favicon و قالب عنوان صفحه را از روی فروشگاه فعلی روی <html> و <head> می‌گذارد */
+/** رنگ، فونت، favicon و قالب عنوان صفحه را از روی فروشگاه فعلی روی <html> و <head> می‌گذارد */
 export function useStoreTheme() {
   const store = useStore();
 
@@ -10,6 +10,7 @@ export function useStoreTheme() {
     return {
       htmlAttrs: {
         style: `--store-primary:${primary};--store-on-primary:${contrastColor(primary)}`,
+        'data-font': safeFont(store.value?.theme.font),
       },
       link: logo ? [{ rel: 'icon', href: logo }] : [],
       titleTemplate: (title?: string) =>

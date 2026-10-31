@@ -15,16 +15,27 @@ import {
   parseStoredLenient,
 } from './blocks.schema';
 import { HOME_SLUG, type SavePageDto } from './page.dto';
+import { ConfigService } from '@nestjs/config';
+import type { PagePreviewDto } from '@myapp/shared-types';
+import type { Env } from '../config/env';
+import { buildStoreUrl } from '../tenants/store-url';
+import { PreviewTokenService } from './preview-token.service';
 
 const toJson = (blocks: StoredBlock[]) => blocks as unknown as Prisma.InputJsonValue;
 
 @Injectable()
 export class PagesService {
+  private readonly storefrontTemplate: string;
+
   constructor(
     @InjectTenantDb() private readonly db: TenantDb,
     private readonly ctx: TenantContext,
     private readonly storage: StorageService,
-  ) {}
+    private readonly tokens: PreviewTokenService,
+    config: ConfigService<Env, true>,
+  ) {
+    this.storefrontTemplate = config.get('STOREFRONT_URL_TEMPLATE', { infer: true });
+  }
 
   // ───────────── خواندن ─────────────
   async list(): Promise<PageSummaryDto[]> {
@@ -98,6 +109,27 @@ export class PagesService {
     return this.get(slug);
   }
 
+  /** پیوند پیش‌نمایش پیش‌نویس در ویترین واقعی؛ ۳۰ دقیقه معتبر است */
+  async preview(slug: string): Promise<PagePreviewDto> {
+    const tenantId = this.ctx.require();
+
+    const page = await this.db.page.findFirst({ where: { slug }, select: { id: true } });
+    if (!page && slug !== HOME_SLUG) throw new NotFoundException('ابتدا صفحه را ذخیره کنید');
+
+    const tenant = await this.db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { subdomain: true },
+    });
+    if (!tenant) throw new NotFoundException('فروشگاه پیدا نشد');
+
+    const { token, expiresAt } = this.tokens.sign(tenantId, slug);
+    const path = slug === HOME_SLUG ? '/' : `/p/${slug}`;
+    return {
+      url: `${buildStoreUrl(this.storefrontTemplate, tenant.subdomain)}${path}?preview=${token}`,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
   /** حذف صفحه‌ی home یعنی بازگشت به صفحه‌ی اصلی پیش‌فرض */
   async remove(slug: string): Promise<void> {
     const { count } = await this.db.page.deleteMany({ where: { slug } });
@@ -127,7 +159,13 @@ export class PagesService {
     return new Map(
       rows.map((r): [string, ImageDto] => [
         r.id,
-        { id: r.id, alt: r.alt, width: r.width, height: r.height, urls: this.storage.imageUrls(tenantId, r.id) },
+        {
+          id: r.id,
+          alt: r.alt,
+          width: r.width,
+          height: r.height,
+          urls: this.storage.imageUrls(tenantId, r.id),
+        },
       ]),
     );
   }
@@ -138,7 +176,11 @@ export class PagesService {
       return parseBlocks(input);
     } catch (err) {
       if (err instanceof BlocksValidationError) {
-        throw new BadRequestException({ statusCode: 400, error: 'Bad Request', message: err.messages });
+        throw new BadRequestException({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: err.messages,
+        });
       }
       throw err;
     }

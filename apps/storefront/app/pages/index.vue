@@ -3,9 +3,11 @@ import type { PublicPageDto } from '@myapp/shared-types';
 
 const store = useStore();
 const api = useStorefrontApi();
+const { token } = usePreview();
 
-const { data: page, error } = await useAsyncData('page:home', () =>
-  api<PublicPageDto>('/storefront/pages/home'),
+const { data: page, error } = await useAsyncData(
+  () => `page:home:${token.value ?? ''}`,
+  () => api<PublicPageDto>('/storefront/pages/home', { query: { preview: token.value } }),
 );
 if (error.value) throw pageError(error.value);
 
@@ -19,5 +21,8 @@ useSeoMeta({
 </script>
 
 <template>
-  <BlockRenderer v-if="page" :blocks="page.blocks" />
+  <div v-if="page" class="space-y-6">
+    <PreviewBanner v-if="page.preview" />
+    <BlockRenderer :blocks="page.blocks" />
+  </div>
 </template>

@@ -46,6 +46,21 @@ export const envSchema = z
     SMTP_URL: optionalText,
     MAIL_FROM: optionalText,
     MELI_SMS_PATTERN_SHIPPED: optionalInt,
+    STOREFRONT_URL_TEMPLATE: z
+      .string()
+      .refine(
+        (v) => {
+          try {
+            return (
+              v.includes('{subdomain}') && Boolean(new URL(v.replace('{subdomain}', 'x')).host)
+            );
+          } catch {
+            return false;
+          }
+        },
+        { message: 'STOREFRONT_URL_TEMPLATE must be a URL that contains {subdomain}' },
+      )
+      .default('http://{subdomain}.localhost:3000'),
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {

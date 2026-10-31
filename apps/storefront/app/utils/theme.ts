@@ -14,3 +14,20 @@ export function contrastColor(hex: string): string {
   const luminance = 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
   return luminance > 0.179 ? '#111827' : '#ffffff';
 }
+
+/** کلیدهای مجاز فونت؛ باید با API و پنل یکی باشد */
+export const STORE_FONT_KEYS = [
+  'Vazirmatn FD',
+  // 'noto-sans-arabic',
+  // 'noto-naskh-arabic',
+  // 'noto-kufi-arabic',
+] as const;
+export type StoreFontKey = (typeof STORE_FONT_KEYS)[number];
+export const DEFAULT_FONT: StoreFontKey = 'Vazirmatn FD';
+
+/** هر مقدار خارج از فهرست مجاز به فونت پیش‌فرض برمی‌گردد */
+export function safeFont(value: unknown): StoreFontKey {
+  return typeof value === 'string' && (STORE_FONT_KEYS as readonly string[]).includes(value)
+    ? (value as StoreFontKey)
+    : DEFAULT_FONT;
+}

@@ -40,7 +40,7 @@ export class StoreService {
       subdomain: tenant.subdomain,
       description: settings.description,
       logoUrl,
-      theme: { primaryColor: settings.primaryColor },
+      theme: { primaryColor: settings.primaryColor, font: settings.font },
     };
   }
 }
