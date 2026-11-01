@@ -474,3 +474,43 @@ export interface PagePreviewDto {
   url: string;
   expiresAt: string;
 }
+
+export interface DomainDnsRecords {
+  /** نام کامل رکورد TXT */
+  txtName: string;
+  txtValue: string;
+  /** هدف CNAME برای زیردامنه‌ها */
+  cnameTarget: string;
+  /** آدرس‌های A برای دامنه‌ی اصلی (اگر تنظیم شده باشد) */
+  addresses: string[];
+}
+
+export interface DomainDto {
+  id: string;
+  hostname: string;
+  status: DomainStatus;
+  isPrimary: boolean;
+  verifiedAt: string | null;
+  lastCheckedAt: string | null;
+  createdAt: string;
+  dns: DomainDnsRecords;
+}
+
+export interface DomainsDto {
+  items: DomainDto[];
+  limit: number;
+}
+
+export interface DomainCheckDto {
+  txt: { ok: boolean; found: string[] };
+  routing: { ok: boolean; via: 'cname' | 'address' | null; cname: string[]; addresses: string[] };
+}
+
+export interface DomainVerifyDto {
+  domain: DomainDto;
+  verified: boolean;
+  /** null وقتی دامنه از قبل تأیید شده یا DNS در دسترس نبود */
+  checks: DomainCheckDto | null;
+  /** DNS پاسخ نداد؛ نتیجه نامشخص است (نه ناموفق) */
+  unavailable: boolean;
+}

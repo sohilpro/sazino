@@ -11,21 +11,18 @@ import { TenantResolver } from './tenant-resolver';
 import type { SaveStoreSettingsDto } from './store-settings.dto';
 import { parseStoreSettings } from './store-settings';
 import { buildStoreUrl } from './store-url';
+import { StoreUrlService } from './store-url.service';
 
 @Injectable()
 export class StoreSettingsService {
-  private readonly template: string;
-
   constructor(
     private readonly prisma: PrismaService,
     @InjectTenantDb() private readonly db: TenantDb,
     private readonly ctx: TenantContext,
     private readonly storage: StorageService,
     private readonly resolver: TenantResolver,
-    config: ConfigService<Env, true>,
-  ) {
-    this.template = config.get('STOREFRONT_URL_TEMPLATE', { infer: true });
-  }
+    private readonly storeUrl: StoreUrlService,
+  ) {}
 
   async get(): Promise<StoreSettingsDto> {
     const tenantId = this.ctx.require();
@@ -54,7 +51,7 @@ export class StoreSettingsService {
       primaryColor: settings.primaryColor,
       font: settings.font,
       logo,
-      storeUrl: buildStoreUrl(this.template, tenant.subdomain),
+      storeUrl: await this.storeUrl.forCurrentTenant(),
     };
   }
 
@@ -75,7 +72,9 @@ export class StoreSettingsService {
 
     // فقط کلیدهای تغییرکرده عوض می‌شوند؛ کلیدهای دیگر (مثل currency) می‌مانند
     const next: Record<string, unknown> =
-      typeof current.settings === 'object' && current.settings !== null && !Array.isArray(current.settings)
+      typeof current.settings === 'object' &&
+      current.settings !== null &&
+      !Array.isArray(current.settings)
         ? { ...(current.settings as Record<string, unknown>) }
         : {};
 

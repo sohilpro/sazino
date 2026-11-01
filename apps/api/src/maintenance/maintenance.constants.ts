@@ -4,6 +4,7 @@ export const MAINTENANCE_JOB = {
   EXPIRE_ORDERS: 'expire-orders',
   RECONCILE_PAYMENTS: 'reconcile-payments',
   CLEANUP: 'cleanup',
+  REVALIDATE_DOMAINS: 'revalidate-domains',
 } as const;
 
 export const DAY_MS = 24 * 60 * 60 * 1000;

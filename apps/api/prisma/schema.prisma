@@ -118,22 +118,28 @@ model User {
     @@map("users")
 }
 
-/// دامنه‌های اختصاصی متصل به فروشگاه
 model Domain {
     id                String       @id @default(uuid(7)) @db.Uuid
     tenantId          String       @map("tenant_id") @db.Uuid
-    /// مثلاً www.customer.ir (lowercase، بدون پروتکل)
-    hostname          String       @unique
+    /// دامنه‌ی ادعاشده (lowercase، punycode). چند فروشگاه می‌توانند هم‌زمان یک دامنه را «در انتظار» داشته باشند
+    hostname          String
+    /// فقط وقتی تأیید شده برابر hostname است؛ این ستون یکتای سراسری است: یک دامنه‌ی تأییدشده فقط یک فروشگاه
+    verifiedHostname  String?      @unique @map("verified_hostname")
     isPrimary         Boolean      @default(false) @map("is_primary")
     status            DomainStatus @default(PENDING)
-    /// مقداری که فروشنده باید در DNS (TXT) بگذارد؛ در روز ۱۶ تولید می‌شود
+    /// مقدار داخل رکورد TXT اثبات مالکیت
     verificationToken String       @map("verification_token")
     verifiedAt        DateTime?    @map("verified_at") @db.Timestamptz(3)
+    lastCheckedAt     DateTime?    @map("last_checked_at") @db.Timestamptz(3)
+    /// تعداد دفعات پشت‌سرهم که بررسی روزانه‌ی TXT شکست خورده
+    checkFailures     Int          @default(0) @map("check_failures")
     createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
     tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+    @@unique([tenantId, hostname])
+    @@index([hostname])
     @@index([tenantId])
     @@map("domains")
 }

@@ -10,6 +10,7 @@ const links = [
   { to: '/pages', label: 'صفحات', exact: false },
   { to: '/settings/theme', label: 'ظاهر فروشگاه', exact: false },
   { to: '/settings/payment', label: 'درگاه پرداخت', exact: false },
+    { to: '/settings/domains', label: 'دامنه‌ی اختصاصی', exact: false },
 ];
 
 const activeClass = 'bg-brand-50 font-semibold text-brand-700';

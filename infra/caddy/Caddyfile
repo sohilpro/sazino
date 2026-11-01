@@ -1,0 +1,33 @@
+{
+	email {$ACME_EMAIL}
+
+	# قبل از صدور هر گواهی تازه، Caddy از API می‌پرسد: ۲۰۰ = مجاز، غیر از آن = ردّ
+	on_demand_tls {
+		ask http://api:4000/api/internal/domains/check?token={$INTERNAL_API_TOKEN}
+	}
+}
+
+# پنل فروشنده و API پلتفرم: گواهی عادی (on-demand نیست)
+app.{$PLATFORM_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy dashboard:3001
+}
+
+api.{$PLATFORM_DOMAIN} {
+	encode zstd gzip
+	# مسیرهای داخلی هرگز از بیرون در دسترس نیستند
+	@internal path /api/internal/*
+	respond @internal 404
+	reverse_proxy api:4000
+}
+
+# ویترین: ساب‌دامین‌های فروشگاه‌ها و دامنه‌های اختصاصی.
+# گواهی در اولین بازدید و فقط با تأیید API صادر می‌شود.
+https:// {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	# Host اصلی بازدیدکننده بدون تغییر به Nuxt می‌رسد (رفتار پیش‌فرض Caddy)
+	reverse_proxy storefront:3000
+}

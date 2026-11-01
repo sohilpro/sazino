@@ -7,9 +7,15 @@ import { MAINTENANCE_QUEUE } from './maintenance.constants';
 import { MaintenanceProcessor } from './maintenance.processor';
 import { MaintenanceScheduler } from './maintenance.scheduler';
 import { MaintenanceService } from './maintenance.service';
+import { DomainsModule } from '../domains/domains.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: MAINTENANCE_QUEUE }), OrdersModule, PaymentsModule],
+  imports: [
+    BullModule.registerQueue({ name: MAINTENANCE_QUEUE }),
+    OrdersModule,
+    PaymentsModule,
+    DomainsModule,
+  ],
   providers: [
     MaintenanceService,
     ...(JOBS_ENABLED ? [MaintenanceProcessor, MaintenanceScheduler] : []),

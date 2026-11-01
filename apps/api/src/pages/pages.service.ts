@@ -20,22 +20,19 @@ import type { PagePreviewDto } from '@myapp/shared-types';
 import type { Env } from '../config/env';
 import { buildStoreUrl } from '../tenants/store-url';
 import { PreviewTokenService } from './preview-token.service';
+import { StoreUrlService } from '../tenants/store-url.service';
 
 const toJson = (blocks: StoredBlock[]) => blocks as unknown as Prisma.InputJsonValue;
 
 @Injectable()
 export class PagesService {
-  private readonly storefrontTemplate: string;
-
   constructor(
     @InjectTenantDb() private readonly db: TenantDb,
     private readonly ctx: TenantContext,
     private readonly storage: StorageService,
     private readonly tokens: PreviewTokenService,
-    config: ConfigService<Env, true>,
-  ) {
-    this.storefrontTemplate = config.get('STOREFRONT_URL_TEMPLATE', { infer: true });
-  }
+    private readonly storeUrl: StoreUrlService,
+  ) {}
 
   // ───────────── خواندن ─────────────
   async list(): Promise<PageSummaryDto[]> {
@@ -116,16 +113,10 @@ export class PagesService {
     const page = await this.db.page.findFirst({ where: { slug }, select: { id: true } });
     if (!page && slug !== HOME_SLUG) throw new NotFoundException('ابتدا صفحه را ذخیره کنید');
 
-    const tenant = await this.db.tenant.findUnique({
-      where: { id: tenantId },
-      select: { subdomain: true },
-    });
-    if (!tenant) throw new NotFoundException('فروشگاه پیدا نشد');
-
     const { token, expiresAt } = this.tokens.sign(tenantId, slug);
     const path = slug === HOME_SLUG ? '/' : `/p/${slug}`;
     return {
-      url: `${buildStoreUrl(this.storefrontTemplate, tenant.subdomain)}${path}?preview=${token}`,
+      url: `${await this.storeUrl.forCurrentTenant()}${path}?preview=${token}`,
       expiresAt: expiresAt.toISOString(),
     };
   }

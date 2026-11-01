@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
-  vite: { plugins: [tailwindcss()] },
+  vite: { plugins: [tailwindcss()], server: { allowedHosts: true } },
   runtimeConfig: {
     // فقط سمت سرور. در پروداکشن با NUXT_API_ORIGIN مقداردهی می‌شود (مثلاً http://api:4000)
     apiOrigin: 'http://localhost:4000',

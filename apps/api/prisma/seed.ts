@@ -288,12 +288,13 @@ async function main() {
     });
 
     await prisma.domain.upsert({
-      where: { hostname: s.domain },
-      update: {},
+      where: { tenantId_hostname: { tenantId: tenant.id, hostname: s.domain } },
+      update: { status: 'VERIFIED', verifiedHostname: s.domain, isPrimary: false },
       create: {
         tenantId: tenant.id,
         hostname: s.domain,
-        isPrimary: true,
+        verifiedHostname: s.domain,
+        isPrimary: false,
         status: 'VERIFIED',
         verificationToken: `seed-${s.subdomain}-token`,
         verifiedAt: new Date(),

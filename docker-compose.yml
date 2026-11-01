@@ -45,7 +45,25 @@ services:
     volumes:
       - minio_data:/data
 
+  caddy:
+    image: caddy:2
+    profiles: ['edge']
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./infra/caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  caddy_data:
+  caddy_config:

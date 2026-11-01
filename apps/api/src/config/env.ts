@@ -61,6 +61,16 @@ export const envSchema = z
         { message: 'STOREFRONT_URL_TEMPLATE must be a URL that contains {subdomain}' },
       )
       .default('http://{subdomain}.localhost:3000'),
+
+    DOMAIN_CNAME_TARGET: optionalText.refine((v) => v === undefined || /^[a-z0-9.-]+$/i.test(v), {
+      message: 'DOMAIN_CNAME_TARGET must be a hostname',
+    }),
+    DOMAIN_SERVER_IPS: optionalText,
+    DNS_RESOLVERS: z.string().min(1).default('1.1.1.1,8.8.8.8'),
+    DOMAIN_REVALIDATE: z.enum(['true', 'false']).default('true'),
+    INTERNAL_API_TOKEN: optionalText.refine((v) => v === undefined || v.length >= 32, {
+      message: 'INTERNAL_API_TOKEN must be at least 32 characters',
+    }),
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {
@@ -106,6 +116,14 @@ export const envSchema = z
         code: 'custom',
         path: ['MAIL_DRIVER'],
         message: 'the console mail driver is not allowed in production (use smtp or none)',
+      });
+    }
+
+    if (env.NODE_ENV === 'production' && !env.INTERNAL_API_TOKEN) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['INTERNAL_API_TOKEN'],
+        message: 'INTERNAL_API_TOKEN is required in production (Caddy on-demand TLS uses it)',
       });
     }
   });

@@ -4,6 +4,8 @@ import { OrdersService } from '../orders/orders.service';
 import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContext } from '../tenants/tenant-context';
+import { DomainsService } from '../domains/domains.service';
+import { PENDING_DOMAIN_TTL_MS } from '../domains/domains.constants';
 import {
   DAY_MS,
   GUEST_CART_TTL_MS,
@@ -30,6 +32,7 @@ export class MaintenanceService {
     private readonly ctx: TenantContext,
     private readonly orders: OrdersService,
     private readonly payments: PaymentsService,
+    private readonly domains: DomainsService,
   ) {}
 
   /** سفارش‌های پرداخت‌نشده‌ی منقضی را لغو و موجودی را آزاد می‌کند */
@@ -71,7 +74,10 @@ export class MaintenanceService {
     const candidates = await this.prisma.payment.findMany({
       where: {
         provider: 'ZARINPAL',
-        createdAt: { gt: new Date(now - RECONCILE_MAX_AGE_MS), lt: new Date(now - RECONCILE_MIN_AGE_MS) },
+        createdAt: {
+          gt: new Date(now - RECONCILE_MAX_AGE_MS),
+          lt: new Date(now - RECONCILE_MIN_AGE_MS),
+        },
         // لغو توسط کاربر در بانک (علت دیگر) دوباره بررسی نمی‌شود
         OR: [{ status: 'INITIATED' }, { status: 'FAILED', failureReason: 'VERIFY_REJECTED' }],
         order: { is: { status: 'PENDING' } },
@@ -96,8 +102,39 @@ export class MaintenanceService {
     return { checked: candidates.length, paid };
   }
 
+  /** مالکیت دامنه‌های تأییدشده را دوباره می‌بیند؛ ۳ شکست پشت‌سرهم = غیرفعال‌شدن و آزادشدن دامنه */
+  async revalidateDomains(scope: Scope = {}): Promise<{ checked: number; disabled: number }> {
+    const cutoff = new Date(Date.now() - DAY_MS);
+    const rows = await this.prisma.domain.findMany({
+      where: {
+        status: 'VERIFIED',
+        OR: [{ lastCheckedAt: null }, { lastCheckedAt: { lt: cutoff } }],
+        ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
+      },
+      select: { id: true, tenantId: true },
+      orderBy: { lastCheckedAt: { sort: 'asc', nulls: 'first' } },
+      take: scope.limit ?? 200,
+    });
+
+    let disabled = 0;
+    for (const row of rows) {
+      try {
+        const result = await this.ctx.runAs(row.tenantId, () => this.domains.revalidate(row.id));
+        if (result === 'disabled') disabled++;
+      } catch (err) {
+        this.logger.warn(`Domain revalidation failed: ${(err as Error).message}`);
+      }
+    }
+    return { checked: rows.length, disabled };
+  }
+
   /** پاکسازی داده‌های منقضی؛ روزانه */
-  async cleanup(): Promise<{ sessions: number; refreshTokens: number; guestCarts: number }> {
+  async cleanup(): Promise<{
+    sessions: number;
+    refreshTokens: number;
+    guestCarts: number;
+    pendingDomains: number;
+  }> {
     const now = Date.now();
 
     const sessions = await this.prisma.customerSession.deleteMany({
@@ -119,10 +156,16 @@ export class MaintenanceService {
       },
     });
 
+    // دامنه‌ای که ۱۴ روز در انتظار مانده، رها شده است
+    const pendingDomains = await this.prisma.domain.deleteMany({
+      where: { status: 'PENDING', createdAt: { lt: new Date(now - PENDING_DOMAIN_TTL_MS) } },
+    });
+
     return {
       sessions: sessions.count,
       refreshTokens: refreshTokens.count,
       guestCarts: guestCarts.count,
+      pendingDomains: pendingDomains.count,
     };
   }
 }

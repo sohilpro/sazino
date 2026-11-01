@@ -1,0 +1,14 @@
+{
+	# گواهی از CA داخلی Caddy (مرورگر هشدار می‌دهد؛ برای آزمایش با curl -k کافی است)
+	local_certs
+	on_demand_tls {
+		ask http://host.docker.internal:4000/api/internal/domains/check?token={$INTERNAL_API_TOKEN}
+	}
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	reverse_proxy host.docker.internal:3000
+}

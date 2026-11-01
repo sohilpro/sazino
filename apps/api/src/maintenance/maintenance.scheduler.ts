@@ -27,6 +27,11 @@ export class MaintenanceScheduler implements OnModuleInit {
         { pattern: '0 3 * * *' },
         { name: MAINTENANCE_JOB.CLEANUP },
       );
+      await this.queue.upsertJobScheduler(
+        MAINTENANCE_JOB.REVALIDATE_DOMAINS,
+        { pattern: '0 4 * * *' },
+        { name: MAINTENANCE_JOB.REVALIDATE_DOMAINS },
+      );
     } catch (err) {
       // نبودن Redis نباید API را از کار بیندازد
       this.logger.error(`Could not register job schedules: ${(err as Error).message}`);

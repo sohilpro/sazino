@@ -3,12 +3,17 @@ import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { MAINTENANCE_JOB, MAINTENANCE_QUEUE } from './maintenance.constants';
 import { MaintenanceService } from './maintenance.service';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../config/env';
 
 @Processor(MAINTENANCE_QUEUE)
 export class MaintenanceProcessor extends WorkerHost {
   private readonly logger = new Logger(MaintenanceProcessor.name);
 
-  constructor(private readonly maintenance: MaintenanceService) {
+  constructor(
+    private readonly maintenance: MaintenanceService,
+    private readonly config: ConfigService<Env, true>,
+  ) {
     super();
   }
 
@@ -29,6 +34,14 @@ export class MaintenanceProcessor extends WorkerHost {
       case MAINTENANCE_JOB.CLEANUP: {
         const result = await this.maintenance.cleanup();
         this.logger.log(`cleanup: ${JSON.stringify(result)}`);
+        return result;
+      }
+      case MAINTENANCE_JOB.REVALIDATE_DOMAINS: {
+        if (this.config.get('DOMAIN_REVALIDATE', { infer: true }) !== 'true')
+          return { skipped: true };
+        const result = await this.maintenance.revalidateDomains();
+        if (result.disabled > 0)
+          this.logger.warn(`revalidate-domains: ${result.disabled} domain(s) disabled`);
         return result;
       }
       default:

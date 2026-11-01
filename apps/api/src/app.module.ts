@@ -29,6 +29,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { DEFAULT_JOB_OPTIONS, redisConnection } from './jobs/queue.config';
 import type { Env } from './config/env';
 import { PagesModule } from './pages/pages.module';
+import { DomainsModule } from './domains/domains.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { PagesModule } from './pages/pages.module';
     CryptoModule,
     PaymentsModule,
     PagesModule,
+    DomainsModule
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
