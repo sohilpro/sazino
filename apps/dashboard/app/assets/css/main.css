@@ -1,5 +1,6 @@
 @import 'vazirmatn/misc/Farsi-Digits/Vazirmatn-FD-font-face.css';
 @import 'tailwindcss';
+
 @theme {
   --font-sans: 'Vazirmatn FD', system-ui, sans-serif;
 
@@ -12,7 +13,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-100 font-sans text-slate-900 antialiased;
+    @apply bg-slate-100 text-slate-900 antialiased;
   }
 }
 
@@ -43,5 +44,10 @@
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  /* متن فنی (کد، شناسه، آدرس): ارقام لاتین، چپ‌به‌راست */
+  .tech {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    direction: ltr;
   }
 }

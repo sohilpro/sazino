@@ -1,12 +1,7 @@
 export const DEFAULT_PRIMARY = '#4f46e5';
 
 /** فونت‌های مجاز؛ کلیدها باید با API و ویترین یکی باشد */
-export const STORE_FONTS = [
-  { key: 'Vazirmatn FD', label: 'وزیرمتن (پیش‌فرض)' },
-//   { key: 'noto-sans-arabic', label: 'نوتو سنس عربی' },
-//   { key: 'noto-naskh-arabic', label: 'نوتو نسخ' },
-//   { key: 'noto-kufi-arabic', label: 'نوتو کوفی' },
-] as const;
+export const STORE_FONTS = [{ key: 'vazirmatn', label: 'وزیرمتن' }] as const;
 export type StoreFontKey = (typeof STORE_FONTS)[number]['key'];
 
 const HEX = /^#[0-9a-f]{6}$/i;

@@ -11,7 +11,8 @@ import {
 describe('colors', () => {
   it('validates #rrggbb', () => {
     for (const v of ['#4f46e5', '#FFFFFF', '#abcdef']) expect(isHexColor(v)).toBe(true);
-    for (const v of ['4f46e5', '#fff', '#12345g', 'red', '', '#1234567']) expect(isHexColor(v)).toBe(false);
+    for (const v of ['4f46e5', '#fff', '#12345g', 'red', '', '#1234567'])
+      expect(isHexColor(v)).toBe(false);
   });
 
   it('computes WCAG contrast', () => {
@@ -32,18 +33,15 @@ describe('colors', () => {
   });
 
   it('warns for light colors only', () => {
-    for (const light of ['#ffffff', '#facc15', '#a5f3fc']) expect(lowContrastOnWhite(light)).toBe(true);
-    for (const dark of ['#4f46e5', '#e11d48', '#000000', '#0f766e']) expect(lowContrastOnWhite(dark)).toBe(false);
+    for (const light of ['#ffffff', '#facc15', '#a5f3fc'])
+      expect(lowContrastOnWhite(light)).toBe(true);
+    for (const dark of ['#4f46e5', '#e11d48', '#000000', '#0f766e'])
+      expect(lowContrastOnWhite(dark)).toBe(false);
   });
 });
 
 describe('fonts', () => {
-  it('offers the same four keys as the API', () => {
-    expect(STORE_FONTS.map((f) => f.key)).toEqual([
-      'Vazirmatn FD',
-    //   'noto-sans-arabic',
-    //   'noto-naskh-arabic',
-    //   'noto-kufi-arabic',
-    ]);
+  it('offers the same keys as the API (one local font for now)', () => {
+    expect(STORE_FONTS.map((f) => f.key)).toEqual(['vazirmatn']);
   });
 });

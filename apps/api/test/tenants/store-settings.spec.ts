@@ -46,7 +46,17 @@ describe('parseStoreSettings', () => {
   it('accepts only fonts from the allow-list', () => {
     for (const font of STORE_FONTS) expect(parseStoreSettings({ font }).font).toBe(font);
 
-    for (const value of ['Comic Sans', 'Vazirmatn FD; } body { display:none', "x'", '', 42, null, ['Vazirmatn FD']]) {
+    for (const value of [
+      'Comic Sans',
+      'Vazirmatn FD',
+      'noto-naskh-arabic',
+      'vazirmatn; } body { display:none',
+      "x'",
+      '',
+      42,
+      null,
+      ['vazirmatn'],
+    ]) {
       expect(parseStoreSettings({ font: value }).font).toBe(DEFAULT_FONT);
     }
   });

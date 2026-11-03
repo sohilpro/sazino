@@ -7,7 +7,12 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { CACHE_PREFIX } from '../../src/tenants/tenant-resolver';
 import { createTestApp } from '../helpers/create-app';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 
 describe('Store settings (theme)', () => {
   let app: INestApplication;
@@ -20,15 +25,29 @@ describe('Store settings (theme)', () => {
   let ownerB = '';
 
   const seller = (token: string) => ({
-    get: () => request(app.getHttpServer()).get('/api/store-settings').set('Authorization', `Bearer ${token}`),
+    get: () =>
+      request(app.getHttpServer())
+        .get('/api/store-settings')
+        .set('Authorization', `Bearer ${token}`),
     put: (body: object) =>
-      request(app.getHttpServer()).put('/api/store-settings').set('Authorization', `Bearer ${token}`).send(body),
+      request(app.getHttpServer())
+        .put('/api/store-settings')
+        .set('Authorization', `Bearer ${token}`)
+        .send(body),
   });
   const publicStore = (f: TenantFixture) =>
     request(app.getHttpServer()).get('/api/store').set('Host', subdomainHost(f));
   const createMedia = (f: TenantFixture) =>
     prisma.media.create({
-      data: { tenantId: f.tenant.id, originalName: 'logo.png', mimeType: 'image/png', sizeBytes: 1, width: 200, height: 100, alt: 'لوگو' },
+      data: {
+        tenantId: f.tenant.id,
+        originalName: 'logo.png',
+        mimeType: 'image/png',
+        sizeBytes: 1,
+        width: 200,
+        height: 100,
+        alt: 'لوگو',
+      },
     });
 
   beforeAll(async () => {
@@ -75,7 +94,7 @@ describe('Store settings (theme)', () => {
         name: '  فروشگاه جدید  ',
         description: '  توضیح تازه  ',
         primaryColor: '#E11D48',
-        font: 'noto-naskh-arabic',
+        font: 'vazirmatn',
         logoMediaId: logo.id,
       })
       .expect(200);
@@ -84,7 +103,7 @@ describe('Store settings (theme)', () => {
       name: 'فروشگاه جدید',
       description: 'توضیح تازه',
       primaryColor: '#e11d48',
-      font: 'noto-naskh-arabic',
+      font: 'vazirmatn',
     });
     expect(res.body.logo).toMatchObject({ id: logo.id, alt: 'لوگو' });
     expect(res.body.logo.urls.sm).toContain(`/${A.tenant.id}/${logo.id}/sm.webp`);
@@ -95,7 +114,7 @@ describe('Store settings (theme)', () => {
     expect(store.body).toMatchObject({
       name: 'فروشگاه جدید',
       description: 'توضیح تازه',
-      theme: { primaryColor: '#e11d48', font: 'noto-naskh-arabic' },
+      theme: { primaryColor: '#e11d48', font: 'vazirmatn' },
     });
     expect(store.body.logoUrl).toContain(`/${logo.id}/sm.webp`);
   });
@@ -136,6 +155,8 @@ describe('Store settings (theme)', () => {
       { primaryColor: 'red' },
       { primaryColor: 'red;} body{display:none' },
       { font: 'comic-sans' },
+      { font: 'noto-naskh-arabic' },
+      { font: 'vazirmatn' }, // فقط کلید پذیرفته می‌شود، نه نام CSS
       { font: 'Vazirmatn FD; } body { display:none' },
       { name: 'ا' },
       { name: 'x'.repeat(61) },

@@ -16,14 +16,9 @@ export function contrastColor(hex: string): string {
 }
 
 /** کلیدهای مجاز فونت؛ باید با API و پنل یکی باشد */
-export const STORE_FONT_KEYS = [
-  'Vazirmatn FD',
-  // 'noto-sans-arabic',
-  // 'noto-naskh-arabic',
-  // 'noto-kufi-arabic',
-] as const;
+export const STORE_FONT_KEYS = ['vazirmatn'] as const;
 export type StoreFontKey = (typeof STORE_FONT_KEYS)[number];
-export const DEFAULT_FONT: StoreFontKey = 'Vazirmatn FD';
+export const DEFAULT_FONT: StoreFontKey = 'vazirmatn';
 
 /** هر مقدار خارج از فهرست مجاز به فونت پیش‌فرض برمی‌گردد */
 export function safeFont(value: unknown): StoreFontKey {

@@ -10,7 +10,12 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { createTestApp } from '../helpers/create-app';
 import { FakeDns } from '../helpers/fake-dns';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 
 const DAY = 24 * 60 * 60 * 1000;
 const RUN = randomUUID().slice(0, 6);
@@ -26,9 +31,11 @@ describe('Domain maintenance', () => {
   let maintenance: MaintenanceService;
   let A: TenantFixture;
 
-  const storeAt = (host: string) => request(app.getHttpServer()).get('/api/store').set('Host', host);
+  const storeAt = (host: string) =>
+    request(app.getHttpServer()).get('/api/store').set('Host', host);
   const tokenFor = (host: string) => `tok-${host}`;
-  const setOwnership = (host: string) => dns.setTxt(`${VERIFY_LABEL}.${host}`, [`${VERIFY_PREFIX}${tokenFor(host)}`]);
+  const setOwnership = (host: string) =>
+    dns.setTxt(`${VERIFY_LABEL}.${host}`, [`${VERIFY_PREFIX}${tokenFor(host)}`]);
 
   const createVerified = (host: string, extra: Record<string, unknown> = {}) =>
     prisma.domain.create({
@@ -42,7 +49,8 @@ describe('Domain maintenance', () => {
         ...extra,
       },
     });
-  const reopen = (id: string) => prisma.domain.update({ where: { id }, data: { lastCheckedAt: ago(2 * DAY) } });
+  const reopen = (id: string) =>
+    prisma.domain.update({ where: { id }, data: { lastCheckedAt: ago(2 * DAY) } });
   const row = (id: string) => prisma.domain.findUniqueOrThrow({ where: { id } });
   const run = () => maintenance.revalidateDomains({ tenantId: A.tenant.id });
 
@@ -113,15 +121,32 @@ describe('Domain maintenance', () => {
   });
 
   it('promotes another verified domain when the primary one is disabled', async () => {
+    // تست‌های قبلی همین فروشگاه دامنه‌ی اصلی و تأییدشده به‌جا گذاشته‌اند؛ تنها یک «اصلی» باقی بماند
+    await prisma.domain.updateMany({
+      where: { tenantId: A.tenant.id },
+      data: { isPrimary: false },
+    });
+
     const primaryHost = uniqueHost();
     const otherHost = uniqueHost();
-    const primary = await createVerified(primaryHost, { isPrimary: true, checkFailures: 2, lastCheckedAt: ago(2 * DAY) });
-    const other = await createVerified(otherHost, { lastCheckedAt: new Date() });
+    const primary = await createVerified(primaryHost, {
+      isPrimary: true,
+      checkFailures: 2,
+      lastCheckedAt: ago(2 * DAY),
+    });
+    // جانشین، قدیمی‌ترین دامنه‌ی تأییدشده است؛ این‌جا عمداً قدیمی‌تر از دامنه‌ی تست‌های قبلی است
+    const other = await createVerified(otherHost, {
+      verifiedAt: ago(365 * DAY),
+      lastCheckedAt: new Date(),
+    });
 
     await run();
 
     expect(await row(primary.id)).toMatchObject({ status: 'FAILED', isPrimary: false });
     expect((await row(other.id)).isPrimary).toBe(true);
+    expect(await prisma.domain.count({ where: { tenantId: A.tenant.id, isPrimary: true } })).toBe(
+      1,
+    );
   });
 
   it('does not count unreachable dns as a failure', async () => {
@@ -144,10 +169,19 @@ describe('Domain maintenance', () => {
   it('never touches domains that are not verified', async () => {
     const host = uniqueHost();
     const d = await prisma.domain.create({
-      data: { tenantId: A.tenant.id, hostname: host, status: 'PENDING', verificationToken: tokenFor(host) },
+      data: {
+        tenantId: A.tenant.id,
+        hostname: host,
+        status: 'PENDING',
+        verificationToken: tokenFor(host),
+      },
     });
     await run();
-    expect(await row(d.id)).toMatchObject({ status: 'PENDING', checkFailures: 0, lastCheckedAt: null });
+    expect(await row(d.id)).toMatchObject({
+      status: 'PENDING',
+      checkFailures: 0,
+      lastCheckedAt: null,
+    });
   });
 
   it('cleanup removes stale pending domains only', async () => {

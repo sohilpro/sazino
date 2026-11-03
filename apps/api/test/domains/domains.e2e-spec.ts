@@ -12,7 +12,12 @@ import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { TenantResolver } from '../../src/tenants/tenant-resolver';
 import { createTestApp } from '../helpers/create-app';
 import { FakeDns } from '../helpers/fake-dns';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 
 const TOKEN = 'test-internal-token-test-internal-token-0001';
 const RUN = randomUUID().slice(0, 6);
@@ -33,22 +38,39 @@ describe('Custom domains', () => {
   let ownerB = '';
 
   const seller = (token: string) => ({
-    get: (path = '') => request(app.getHttpServer()).get(`/api/domains${path}`).set('Authorization', `Bearer ${token}`),
+    get: (path = '') =>
+      request(app.getHttpServer())
+        .get(`/api/domains${path}`)
+        .set('Authorization', `Bearer ${token}`),
     post: (path = '', body: object = {}) =>
-      request(app.getHttpServer()).post(`/api/domains${path}`).set('Authorization', `Bearer ${token}`).send(body),
-    del: (path: string) => request(app.getHttpServer()).delete(`/api/domains${path}`).set('Authorization', `Bearer ${token}`),
+      request(app.getHttpServer())
+        .post(`/api/domains${path}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(body),
+    del: (path: string) =>
+      request(app.getHttpServer())
+        .delete(`/api/domains${path}`)
+        .set('Authorization', `Bearer ${token}`),
   });
-  const storeAt = (host: string) => request(app.getHttpServer()).get('/api/store').set('Host', host);
+  const storeAt = (host: string) =>
+    request(app.getHttpServer()).get('/api/store').set('Host', host);
   const ask = (query: Record<string, string | undefined>) =>
     request(app.getHttpServer()).get('/api/internal/domains/check').query(query);
 
   /** رکوردهای درست DNS برای یک دامنه */
-  const setDns = (hostname: string, token: string, opts: { txt?: boolean; routing?: boolean } = {}) => {
+  const setDns = (
+    hostname: string,
+    token: string,
+    opts: { txt?: boolean; routing?: boolean } = {},
+  ) => {
     if (opts.txt !== false) dns.setTxt(`${VERIFY_LABEL}.${hostname}`, [`${VERIFY_PREFIX}${token}`]);
     if (opts.routing !== false) dns.setCname(hostname, [verifier.cnameTarget]);
   };
   const resetCooldown = (id: string) =>
-    prisma.domain.update({ where: { id }, data: { lastCheckedAt: new Date(Date.now() - 2 * VERIFY_COOLDOWN_MS) } });
+    prisma.domain.update({
+      where: { id },
+      data: { lastCheckedAt: new Date(Date.now() - 2 * VERIFY_COOLDOWN_MS) },
+    });
 
   async function addDomain(token: string, hostname: string) {
     const res = await seller(token).post('', { hostname }).expect(201);
@@ -74,7 +96,17 @@ describe('Custom domains', () => {
     ownerB = await sign(B.owner);
   });
 
-  beforeEach(() => dns.reset());
+  beforeEach(async () => {
+    dns.reset();
+    // هر تست با فروشگاهی «تمیز» شروع می‌کند: فقط دامنه‌ی خود fixture می‌ماند
+    // (سقف ۵ دامنه‌ی هر فروشگاه بین تست‌ها مشترک نیست)
+    await prisma.domain.deleteMany({
+      where: {
+        tenantId: { in: [A.tenant.id, B.tenant.id] },
+        id: { notIn: [A.domain.id, B.domain.id] },
+      },
+    });
+  });
 
   afterAll(async () => {
     await redis.del(`tenant:host:${subdomainHost(A)}`, `tenant:host:${subdomainHost(B)}`);
@@ -86,7 +118,9 @@ describe('Custom domains', () => {
   describe('adding a domain', () => {
     it('normalizes the name and returns the dns instructions', async () => {
       const host = uniqueHost('www');
-      const res = await seller(owner).post('', { hostname: `  HTTPS://${host.toUpperCase()}/path  ` }).expect(201);
+      const res = await seller(owner)
+        .post('', { hostname: `  HTTPS://${host.toUpperCase()}/path  ` })
+        .expect(201);
 
       expect(res.body).toMatchObject({
         hostname: host,
@@ -101,11 +135,21 @@ describe('Custom domains', () => {
     });
 
     it('rejects invalid, reserved and platform names', async () => {
-      for (const hostname of ['localhost', '127.0.0.1', 'singlelabel', 'a_b.example.org', 'shop.test', 'x.local', 'a..b.com']) {
+      for (const hostname of [
+        'localhost',
+        '127.0.0.1',
+        'singlelabel',
+        'a_b.example.org',
+        'shop.test',
+        'x.local',
+        'a..b.com',
+      ]) {
         await seller(owner).post('', { hostname }).expect(400);
       }
       // دامنه‌ی خود پلتفرم و زیردامنه‌هایش (در تست PLATFORM_DOMAIN = localhost است)
-      await seller(owner).post('', { hostname: subdomainHost(A) }).expect(400);
+      await seller(owner)
+        .post('', { hostname: subdomainHost(A) })
+        .expect(400);
       await seller(owner).post('', { hostname: '' }).expect(400);
       await seller(owner).post('', { hostname: 'x.example.org', plan: 'PRO' }).expect(400);
     });
@@ -120,15 +164,25 @@ describe('Custom domains', () => {
     it('limits the number of domains', async () => {
       const C = await createFixture(prisma, 'c');
       try {
+        // دامنه‌ی fixture هم یکی از دامنه‌ها حساب می‌شود؛ برای شمارش دقیق حذفش می‌کنیم
+        await prisma.domain.deleteMany({ where: { tenantId: C.tenant.id } });
         const token = await app
           .get(JwtService, { strict: false })
           .signAsync({ sub: C.owner.id, tenantId: C.tenant.id, role: 'OWNER' });
+
         for (let i = 0; i < MAX_DOMAINS_PER_TENANT; i++) await addDomain(token, uniqueHost('lim'));
-        // دامنه‌ی fixture هم شمرده می‌شود، پس سقف زودتر پر شده است
-        const res = await seller(token).post('', { hostname: uniqueHost('over') });
-        expect([201, 409]).toContain(res.status);
-        const again = await seller(token).post('', { hostname: uniqueHost('over') }).expect(409);
-        expect(again.body.code).toBe('DOMAIN_LIMIT');
+
+        const res = await seller(token)
+          .post('', { hostname: uniqueHost('over') })
+          .expect(409);
+        expect(res.body.code).toBe('DOMAIN_LIMIT');
+
+        // با حذف یکی، دوباره جا باز می‌شود
+        const list = (await seller(token).get().expect(200)).body.items as Array<{ id: string }>;
+        await seller(token).del(`/${list[0]!.id}`).expect(204);
+        await seller(token)
+          .post('', { hostname: uniqueHost('again') })
+          .expect(201);
       } finally {
         await cleanupFixtures(prisma, [C]);
       }
@@ -179,7 +233,10 @@ describe('Custom domains', () => {
       dns.reset();
       setDns(host, tokenOf(d), { txt: false });
       res = await seller(owner).post(`/${d.id}/verify`).expect(200);
-      expect(res.body.checks).toMatchObject({ txt: { ok: false }, routing: { ok: true, via: 'cname' } });
+      expect(res.body.checks).toMatchObject({
+        txt: { ok: false },
+        routing: { ok: true, via: 'cname' },
+      });
       expect(res.body.verified).toBe(false);
     });
 
@@ -225,8 +282,12 @@ describe('Custom domains', () => {
         setDns(first.hostname, tokenOf(first));
         setDns(second.hostname, tokenOf(second));
 
-        expect((await seller(token).post(`/${first.id}/verify`).expect(200)).body.domain.isPrimary).toBe(true);
-        expect((await seller(token).post(`/${second.id}/verify`).expect(200)).body.domain.isPrimary).toBe(false);
+        expect(
+          (await seller(token).post(`/${first.id}/verify`).expect(200)).body.domain.isPrimary,
+        ).toBe(true);
+        expect(
+          (await seller(token).post(`/${second.id}/verify`).expect(200)).body.domain.isPrimary,
+        ).toBe(false);
       } finally {
         await cleanupFixtures(prisma, [C]);
       }
@@ -259,7 +320,10 @@ describe('Custom domains', () => {
       const forB = await addDomain(ownerB, host); // «در انتظار» بودن دامنه‌ی فروشگاه دیگر مانع نیست
 
       // هر دو توکن در DNS هست؛ اولی که بررسی کند برنده است
-      dns.setTxt(`${VERIFY_LABEL}.${host}`, [`${VERIFY_PREFIX}${tokenOf(forA)}`, `${VERIFY_PREFIX}${tokenOf(forB)}`]);
+      dns.setTxt(`${VERIFY_LABEL}.${host}`, [
+        `${VERIFY_PREFIX}${tokenOf(forA)}`,
+        `${VERIFY_PREFIX}${tokenOf(forB)}`,
+      ]);
       dns.setCname(host, [verifier.cnameTarget]);
 
       await seller(owner).post(`/${forA.id}/verify`).expect(200);
@@ -270,7 +334,9 @@ describe('Custom domains', () => {
 
       // ثبت دوباره‌ی دامنه‌ی تأییدشده‌ی فروشگاه دیگر هم رد می‌شود
       await seller(ownerB).del(`/${forB.id}`).expect(204);
-      expect((await seller(ownerB).post('', { hostname: host }).expect(409)).body.code).toBe('DOMAIN_TAKEN');
+      expect((await seller(ownerB).post('', { hostname: host }).expect(409)).body.code).toBe(
+        'DOMAIN_TAKEN',
+      );
     });
 
     it('cannot verify a domain of another store', async () => {
@@ -306,7 +372,10 @@ describe('Custom domains', () => {
       const res = await seller(owner).post(`/${second.id}/primary`).expect(200);
       expect(res.body.isPrimary).toBe(true);
 
-      const list = (await seller(owner).get().expect(200)).body.items as Array<{ id: string; isPrimary: boolean }>;
+      const list = (await seller(owner).get().expect(200)).body.items as Array<{
+        id: string;
+        isPrimary: boolean;
+      }>;
       expect(list.filter((d) => d.isPrimary).map((d) => d.id)).toEqual([second.id]);
       void first;
     });
@@ -329,7 +398,10 @@ describe('Custom domains', () => {
         await seller(token).del(`/${one.id}`).expect(204);
         await storeAt(one.hostname).expect(404); // کش پاک شده
 
-        const list = (await seller(token).get().expect(200)).body.items as Array<{ id: string; isPrimary: boolean }>;
+        const list = (await seller(token).get().expect(200)).body.items as Array<{
+          id: string;
+          isPrimary: boolean;
+        }>;
         expect(list.find((d) => d.id === two.id)?.isPrimary).toBe(true);
       } finally {
         await cleanupFixtures(prisma, [C]);
@@ -338,12 +410,15 @@ describe('Custom domains', () => {
 
     it('uses the primary domain in the store address, and falls back to the platform subdomain', async () => {
       const C = await createFixture(prisma, 'c');
+      await prisma.domain.deleteMany({ where: { tenantId: C.tenant.id } }); // دامنه‌ی fixture جانشین اصلی می‌شد
       try {
         const token = await app
           .get(JwtService, { strict: false })
           .signAsync({ sub: C.owner.id, tenantId: C.tenant.id, role: 'OWNER' });
         const settings = () =>
-          request(app.getHttpServer()).get('/api/store-settings').set('Authorization', `Bearer ${token}`);
+          request(app.getHttpServer())
+            .get('/api/store-settings')
+            .set('Authorization', `Bearer ${token}`);
 
         expect((await settings().expect(200)).body.storeUrl).toContain(C.tenant.subdomain);
 

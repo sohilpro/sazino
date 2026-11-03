@@ -59,7 +59,7 @@ export interface SubdomainAvailability {
   reason?: 'invalid' | 'reserved' | 'taken';
 }
 
-export type StoreFont = 'Vazirmatn FD';
+export type StoreFont = 'vazirmatn';
 // export type StoreFont = 'Vazirmatn FD' | 'noto-sans-arabic' | 'noto-naskh-arabic' | 'noto-kufi-arabic';
 
 export interface StoreTheme {

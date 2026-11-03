@@ -10,14 +10,28 @@ const { user } = useAuth();
 
 const canEdit = computed(() => user.value?.role === 'OWNER' || user.value?.role === 'ADMIN');
 
-const { data, error } = await useAsyncData('theme-settings', () => api<StoreSettingsDto>('/store-settings'));
+const { data, error } = await useAsyncData('theme-settings', () =>
+  api<StoreSettingsDto>('/store-settings'),
+);
 
-const form = reactive({ name: '', description: '', primaryColor: DEFAULT_PRIMARY, font: 'Vazirmatn FD' as StoreFontKey });
+const form = reactive({
+  name: '',
+  description: '',
+  primaryColor: DEFAULT_PRIMARY,
+  font: 'Vazirmatn FD' as StoreFontKey,
+});
 const logo = ref<ImageDto | null>(null);
 const savedSignature = ref('');
 const storeUrl = ref('');
 
-const signature = () => JSON.stringify([form.name.trim(), form.description.trim(), form.primaryColor.toLowerCase(), form.font, logo.value?.id ?? null]);
+const signature = () =>
+  JSON.stringify([
+    form.name.trim(),
+    form.description.trim(),
+    form.primaryColor.toLowerCase(),
+    form.font,
+    logo.value?.id ?? null,
+  ]);
 
 function apply(dto: StoreSettingsDto) {
   form.name = dto.name;
@@ -33,9 +47,13 @@ if (data.value) apply(data.value);
 const dirty = computed(() => signature() !== savedSignature.value);
 const colorValid = computed(() => isHexColor(form.primaryColor));
 const lowContrast = computed(() => colorValid.value && lowContrastOnWhite(form.primaryColor));
-const nameError = computed(() => (form.name.trim().length < 2 ? 'نام فروشگاه باید حداقل ۲ کاراکتر باشد' : ''));
+const nameError = computed(() =>
+  form.name.trim().length < 2 ? 'نام فروشگاه باید حداقل ۲ کاراکتر باشد' : '',
+);
 
-const previewColor = computed(() => (colorValid.value ? form.primaryColor.toLowerCase() : DEFAULT_PRIMARY));
+const previewColor = computed(() =>
+  colorValid.value ? form.primaryColor.toLowerCase() : DEFAULT_PRIMARY,
+);
 const initial = computed(() => [...(form.name.trim() || '?')][0]);
 
 // ───────────── لوگو ─────────────
@@ -74,14 +92,22 @@ async function save() {
   }
 }
 
-onBeforeRouteLeave(() => !dirty.value || confirm('تغییرات ذخیره‌نشده از بین می‌رود. خارج می‌شوید؟'));
+onBeforeRouteLeave(
+  () => !dirty.value || confirm('تغییرات ذخیره‌نشده از بین می‌رود. خارج می‌شوید؟'),
+);
 </script>
 
 <template>
   <div class="max-w-4xl space-y-6">
     <header class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-extrabold">ظاهر فروشگاه</h1>
-      <a v-if="storeUrl" :href="storeUrl" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+      <a
+        v-if="storeUrl"
+        :href="storeUrl"
+        target="_blank"
+        rel="noopener"
+        class="btn btn-secondary btn-sm"
+      >
         مشاهده‌ی فروشگاه
       </a>
     </header>
@@ -100,18 +126,40 @@ onBeforeRouteLeave(() => !dirty.value || confirm('تغییرات ذخیره‌ن
           <label class="block">
             <span class="label">توضیح کوتاه</span>
             <textarea v-model="form.description" rows="3" class="input" maxlength="500" />
-            <span class="mt-1 block text-xs text-slate-500">در صفحه‌ی اصلی پیش‌فرض و نتایج جستجو نمایش داده می‌شود ({{ form.description.length }} / ۵۰۰)</span>
+            <span class="mt-1 block text-xs text-slate-500"
+              >در صفحه‌ی اصلی پیش‌فرض و نتایج جستجو نمایش داده می‌شود ({{
+                form.description.length
+              }}
+              / ۵۰۰)</span
+            >
           </label>
 
           <div>
             <span class="label">لوگو</span>
             <div class="flex items-center gap-3">
-              <img v-if="logo" :src="logo.urls.sm" :alt="logo.alt ?? 'لوگو'" class="h-14 w-auto max-w-32 rounded-lg border border-slate-200 object-contain p-1" />
-              <div v-else class="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">بدون لوگو</div>
+              <img
+                v-if="logo"
+                :src="logo.urls.sm"
+                :alt="logo.alt ?? 'لوگو'"
+                class="h-14 w-auto max-w-32 rounded-lg border border-slate-200 object-contain p-1"
+              />
+              <div
+                v-else
+                class="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400"
+              >
+                بدون لوگو
+              </div>
               <button type="button" class="btn btn-secondary btn-sm" @click="pickerOpen = true">
                 {{ logo ? 'تغییر' : 'انتخاب' }}
               </button>
-              <button v-if="logo" type="button" class="btn btn-secondary btn-sm" @click="logo = null">حذف</button>
+              <button
+                v-if="logo"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                @click="logo = null"
+              >
+                حذف
+              </button>
             </div>
           </div>
 
@@ -125,23 +173,38 @@ onBeforeRouteLeave(() => !dirty.value || confirm('تغییرات ذخیره‌ن
                 aria-label="انتخاب رنگ"
                 @input="form.primaryColor = ($event.target as HTMLInputElement).value"
               />
-              <input v-model="form.primaryColor" class="input max-w-40" dir="ltr" maxlength="7" placeholder="#4f46e5" />
+              <input
+                v-model="form.primaryColor"
+                class="input max-w-40"
+                dir="ltr"
+                maxlength="7"
+                placeholder="#4f46e5"
+              />
             </div>
-            <p v-if="!colorValid" class="mt-1 text-xs text-red-700">رنگ باید با فرمت #rrggbb باشد</p>
+            <p v-if="!colorValid" class="mt-1 text-xs text-red-700">
+              رنگ باید با فرمت #rrggbb باشد
+            </p>
             <p v-else-if="lowContrast" class="mt-1 text-xs text-amber-700">
-              این رنگ روی پس‌زمینه‌ی سفید کم‌رنگ است؛ قیمت‌ها و لینک‌های رنگی ممکن است خوانا نباشند. رنگ تیره‌تری امتحان کنید.
+              این رنگ روی پس‌زمینه‌ی سفید کم‌رنگ است؛ قیمت‌ها و لینک‌های رنگی ممکن است خوانا نباشند.
+              رنگ تیره‌تری امتحان کنید.
             </p>
           </div>
 
-          <label class="block">
+          <label v-if="STORE_FONTS.length > 1" class="block">
             <span class="label">فونت</span>
             <select v-model="form.font" class="input">
               <option v-for="f in STORE_FONTS" :key="f.key" :value="f.key">{{ f.label }}</option>
             </select>
           </label>
+          <p v-else class="text-sm text-slate-600">
+            فونت فروشگاه: <b>{{ STORE_FONTS[0].label }}</b>
+            (فعلاً تنها فونت پشتیبانی‌شده است؛ فونت‌های بیشتر بعد از لانچ اضافه می‌شود)
+          </p>
         </fieldset>
 
-        <p v-if="!canEdit" class="text-sm text-slate-500">فقط مالک و مدیر می‌توانند ظاهر فروشگاه را تغییر دهند.</p>
+        <p v-if="!canEdit" class="text-sm text-slate-500">
+          فقط مالک و مدیر می‌توانند ظاهر فروشگاه را تغییر دهند.
+        </p>
         <button v-else type="submit" class="btn btn-primary" :disabled="saving || !dirty">
           {{ saving ? 'در حال ذخیره…' : 'ذخیره' }}
         </button>
@@ -150,9 +213,17 @@ onBeforeRouteLeave(() => !dirty.value || confirm('تغییرات ذخیره‌ن
       <!-- پیش‌نمایش زنده -->
       <section class="space-y-3">
         <h2 class="text-lg font-bold">پیش‌نمایش</h2>
-        <div class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5" :data-font="form.font">
+        <div
+          class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
+          :data-font="form.font"
+        >
           <div class="flex items-center gap-3">
-            <img v-if="logo" :src="logo.urls.sm" :alt="form.name" class="h-10 w-auto max-w-32 object-contain" />
+            <img
+              v-if="logo"
+              :src="logo.urls.sm"
+              :alt="form.name"
+              class="h-10 w-auto max-w-32 object-contain"
+            />
             <span
               v-else
               class="flex size-10 items-center justify-center rounded-xl text-lg font-extrabold"
@@ -174,12 +245,12 @@ onBeforeRouteLeave(() => !dirty.value || confirm('تغییرات ذخیره‌ن
             >
               افزودن به سبد خرید
             </span>
-            <span class="font-bold" :style="{ color: brandTextColor(previewColor) }">۱٬۲۰۰٬۰۰۰ تومان</span>
+            <span class="font-bold" :style="{ color: brandTextColor(previewColor) }"
+              >۱٬۲۰۰٬۰۰۰ تومان</span
+            >
           </div>
         </div>
-        <p class="text-xs text-slate-500">
-          فونت‌ها از Google Fonts بارگذاری می‌شوند. در ویترین هم همین رنگ و فونت اعمال می‌شود.
-        </p>
+        <p class="text-xs text-slate-500">در ویترین هم همین رنگ و فونت اعمال می‌شود.</p>
       </section>
     </div>
 

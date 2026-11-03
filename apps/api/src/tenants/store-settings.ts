@@ -1,15 +1,13 @@
 export const DEFAULT_PRIMARY_COLOR = '#4f46e5';
 export const MAX_DESCRIPTION_LENGTH = 500;
 
-/** فهرست مجاز فونت‌ها؛ باید با ویترین و پنل یکی باشد (آن‌ها فقط این کلیدها را می‌شناسند) */
-export const STORE_FONTS = [
-  'Vazirmatn FD',
-  // 'noto-sans-arabic',
-  // 'noto-naskh-arabic',
-  // 'noto-kufi-arabic',
-] as const;
+/**
+ * فهرست مجاز فونت‌ها؛ باید با ویترین و پنل یکی باشد. مقدار ذخیره‌شده یک «کلید» ثابت است،
+ * نه نام CSS. فعلاً فقط وزیرمتن (محلی، از پکیج vazirmatn).
+ */
+export const STORE_FONTS = ['vazirmatn'] as const;
 export type StoreFontKey = (typeof STORE_FONTS)[number];
-export const DEFAULT_FONT: StoreFontKey = 'Vazirmatn FD';
+export const DEFAULT_FONT: StoreFontKey = 'vazirmatn';
 
 export const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

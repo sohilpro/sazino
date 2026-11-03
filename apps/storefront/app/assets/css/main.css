@@ -7,6 +7,12 @@
   --store-on-primary: #ffffff;
 }
 
+/*
+ * فونت محلی (پکیج vazirmatn، بدون هیچ درخواست خارجی).
+ * برای افزودن فونت جدید: فایل font-face آن را بالا import کن، کلیدش را به فهرست مجاز
+ * (API: store-settings.ts، ویترین و پنل: utils/theme.ts) اضافه کن و یک قاعده‌ی
+ * [data-font='کلید'] { font-family: ...; } بنویس.
+ */
 @theme {
   --font-sans: 'Vazirmatn FD', system-ui, sans-serif;
 }
@@ -23,7 +29,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 font-sans text-slate-900 antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased;
   }
 }
 
@@ -48,5 +54,10 @@
   }
   .card {
     @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+  }
+  /* متن فنی (کد، شناسه، آدرس): ارقام لاتین، چپ‌به‌راست */
+  .tech {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    direction: ltr;
   }
 }

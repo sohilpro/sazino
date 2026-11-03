@@ -8,7 +8,12 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { CACHE_PREFIX } from '../../src/tenants/tenant-resolver';
 import { createTestApp } from '../helpers/create-app';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 
 const text = (content: string, id = 'text') => ({ id, type: 'rich-text', props: { content } });
 
@@ -23,13 +28,20 @@ describe('Page preview', () => {
   let editor = '';
 
   const seller = (token: string) => ({
-    put: (slug: string, body: object) =>
-      request(app.getHttpServer()).put(`/api/pages/${slug}`).set('Authorization', `Bearer ${token}`).send(body),
+    put: (path: string, body: object) =>
+      request(app.getHttpServer())
+        .put(`/api/pages${path}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(body),
     post: (path: string) =>
-      request(app.getHttpServer()).post(`/api/pages${path}`).set('Authorization', `Bearer ${token}`),
+      request(app.getHttpServer())
+        .post(`/api/pages${path}`)
+        .set('Authorization', `Bearer ${token}`),
   });
   const visit = (f: TenantFixture, slug: string, preview?: string) => {
-    const req = request(app.getHttpServer()).get(`/api/storefront/pages/${slug}`).set('Host', subdomainHost(f));
+    const req = request(app.getHttpServer())
+      .get(`/api/storefront/pages/${slug}`)
+      .set('Host', subdomainHost(f));
     return preview === undefined ? req : req.query({ preview });
   };
   const tokenOf = (url: string) => new URL(url).searchParams.get('preview')!;
@@ -56,7 +68,9 @@ describe('Page preview', () => {
   });
 
   it('shows an unpublished draft only through a preview link', async () => {
-    await seller(owner).put('/secret', { title: 'محرمانه', blocks: [text('فقط پیش‌نویس')] }).expect(200);
+    await seller(owner)
+      .put('/secret', { title: 'محرمانه', blocks: [text('فقط پیش‌نویس')] })
+      .expect(200);
 
     const res = await seller(editor).post('/secret/preview').expect(200);
     expect(res.body.url).toContain(A.tenant.subdomain);
@@ -68,16 +82,25 @@ describe('Page preview', () => {
     await visit(A, 'secret').expect(404); // بازدیدکننده‌ی عادی
 
     const previewed = await visit(A, 'secret', tokenOf(res.body.url)).expect(200);
-    expect(previewed.body).toMatchObject({ slug: 'secret', title: 'محرمانه', preview: true, publishedAt: null });
+    expect(previewed.body).toMatchObject({
+      slug: 'secret',
+      title: 'محرمانه',
+      preview: true,
+      publishedAt: null,
+    });
     expect(previewed.body.blocks[0].props.content).toBe('فقط پیش‌نویس');
     expect(previewed.headers['cache-control']).toBe('no-store');
     expect(previewed.headers['x-robots-tag']).toContain('noindex');
   });
 
   it('shows the draft in preview and the published version to everyone else', async () => {
-    await seller(owner).put('/live', { title: 'زنده', blocks: [text('نسخه‌ی منتشرشده')] }).expect(200);
+    await seller(owner)
+      .put('/live', { title: 'زنده', blocks: [text('نسخه‌ی منتشرشده')] })
+      .expect(200);
     await seller(owner).post('/live/publish').expect(200);
-    await seller(owner).put('/live', { blocks: [text('نسخه‌ی پیش‌نویس')] }).expect(200);
+    await seller(owner)
+      .put('/live', { blocks: [text('نسخه‌ی پیش‌نویس')] })
+      .expect(200);
 
     const { body } = await seller(owner).post('/live/preview').expect(200);
 
@@ -92,7 +115,9 @@ describe('Page preview', () => {
   });
 
   it('falls back to the published version when there is no draft', async () => {
-    await seller(owner).put('/nodraft', { title: 'بی‌پیش‌نویس', blocks: [text('منتشر')] }).expect(200);
+    await seller(owner)
+      .put('/nodraft', { title: 'بی‌پیش‌نویس', blocks: [text('منتشر')] })
+      .expect(200);
     await seller(owner).post('/nodraft/publish').expect(200);
 
     const { body } = await seller(owner).post('/nodraft/preview').expect(200);
@@ -110,8 +135,12 @@ describe('Page preview', () => {
   });
 
   it('refuses invalid, expired, foreign or misdirected tokens with 410', async () => {
-    await seller(owner).put('/guarded', { title: 'محافظت‌شده', blocks: [text('x')] }).expect(200);
-    await seller(owner).put('/other', { title: 'دیگر', blocks: [text('y')] }).expect(200);
+    await seller(owner)
+      .put('/guarded', { title: 'محافظت‌شده', blocks: [text('x')] })
+      .expect(200);
+    await seller(owner)
+      .put('/other', { title: 'دیگر', blocks: [text('y')] })
+      .expect(200);
 
     const valid = tokenOf((await seller(owner).post('/guarded/preview').expect(200)).body.url);
     const expired = tokens.sign(A.tenant.id, 'guarded', -1000).token;
