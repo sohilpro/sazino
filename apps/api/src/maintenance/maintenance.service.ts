@@ -134,6 +134,7 @@ export class MaintenanceService {
     refreshTokens: number;
     guestCarts: number;
     pendingDomains: number;
+    adminSessions: number;
   }> {
     const now = Date.now();
 
@@ -161,11 +162,16 @@ export class MaintenanceService {
       where: { status: 'PENDING', createdAt: { lt: new Date(now - PENDING_DOMAIN_TTL_MS) } },
     });
 
+    const adminSessions = await this.prisma.adminSession.deleteMany({
+      where: { expiresAt: { lt: new Date(now) } },
+    });
+
     return {
       sessions: sessions.count,
       refreshTokens: refreshTokens.count,
       guestCarts: guestCarts.count,
       pendingDomains: pendingDomains.count,
+      adminSessions: adminSessions.count,
     };
   }
 }

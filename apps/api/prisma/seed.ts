@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { DEFAULT_PLANS } from '../src/plans/plan-defaults';
 
 config({ path: ['.env', '../../.env'] });
 
@@ -164,6 +165,30 @@ async function seedCatalog(tenantId: string) {
     }
   }
   console.log('✔ catalog seeded for demo');
+}
+
+async function seedPlans() {
+  await prisma.plan.createMany({
+    data: DEFAULT_PLANS.map((p) => ({ ...p })),
+    skipDuplicates: true,
+  });
+  console.log('✔ plans seeded');
+}
+
+/** فقط توسعه: ادمین نمونه برای ورود بدون اسکریپت. در پروداکشن هرگز ساخته نمی‌شود. */
+async function seedPlatformAdmin() {
+  if (process.env.NODE_ENV === 'production') return;
+  const email = 'admin@platform.test';
+  await prisma.platformAdmin.upsert({
+    where: { email },
+    update: {},
+    create: {
+      email,
+      name: 'مدیر پلتفرم (نمونه)',
+      passwordHash: await bcrypt.hash('AdminPass-12345', 12),
+    },
+  });
+  console.log(`✔ dev platform admin: ${email} / AdminPass-12345`);
 }
 
 async function seedPages(tenantId: string) {
@@ -329,6 +354,8 @@ async function main() {
   const demo = await prisma.tenant.findUniqueOrThrow({ where: { subdomain: 'demo' } });
   await seedCatalog(demo.id);
   await seedPages(demo.id);
+  await seedPlans();
+  await seedPlatformAdmin();
 
   console.log(`\nDev password for all users: ${DEV_PASSWORD}`);
 }

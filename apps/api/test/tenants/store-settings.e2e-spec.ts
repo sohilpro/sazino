@@ -187,6 +187,6 @@ describe('Store settings (theme)', () => {
   it('does not touch the subdomain or plan', async () => {
     await seller(owner).put({ name: 'نام دیگر' }).expect(200);
     const row = await prisma.tenant.findUniqueOrThrow({ where: { id: A.tenant.id } });
-    expect(row).toMatchObject({ subdomain: A.tenant.subdomain, plan: 'FREE', status: 'ACTIVE' });
+    expect(row).toMatchObject({ subdomain: A.tenant.subdomain, plan: 'PRO', status: 'ACTIVE' });
   });
 });

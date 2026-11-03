@@ -6,7 +6,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DNS_LOOKUP } from '../../src/domains/dns-lookup';
 import { DomainVerifier, VERIFY_LABEL, VERIFY_PREFIX } from '../../src/domains/domain-verifier';
-import { MAX_DOMAINS_PER_TENANT, VERIFY_COOLDOWN_MS } from '../../src/domains/domains.constants';
+import { VERIFY_COOLDOWN_MS } from '../../src/domains/domains.constants';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { TenantResolver } from '../../src/tenants/tenant-resolver';
@@ -161,7 +161,7 @@ describe('Custom domains', () => {
       expect(res.body.code).toBe('DOMAIN_EXISTS');
     });
 
-    it('limits the number of domains', async () => {
+    it('limits the number of domains by plan', async () => {
       const C = await createFixture(prisma, 'c');
       try {
         // دامنه‌ی fixture هم یکی از دامنه‌ها حساب می‌شود؛ برای شمارش دقیق حذفش می‌کنیم
@@ -170,12 +170,17 @@ describe('Custom domains', () => {
           .get(JwtService, { strict: false })
           .signAsync({ sub: C.owner.id, tenantId: C.tenant.id, role: 'OWNER' });
 
-        for (let i = 0; i < MAX_DOMAINS_PER_TENANT; i++) await addDomain(token, uniqueHost('lim'));
+        for (let i = 0; i < 5; i++) await addDomain(token, uniqueHost('lim'));
 
         const res = await seller(token)
           .post('', { hostname: uniqueHost('over') })
           .expect(409);
-        expect(res.body.code).toBe('DOMAIN_LIMIT');
+        expect(res.body).toMatchObject({
+          code: 'PLAN_LIMIT',
+          resource: 'domains',
+          limit: 5,
+          used: 5,
+        });
 
         // با حذف یکی، دوباره جا باز می‌شود
         const list = (await seller(token).get().expect(200)).body.items as Array<{ id: string }>;
@@ -199,7 +204,7 @@ describe('Custom domains', () => {
       await addDomain(owner, host);
 
       const a = (await seller(owner).get().expect(200)).body;
-      expect(a.limit).toBe(MAX_DOMAINS_PER_TENANT);
+      expect(a.limit).toBe(5);
       expect(a.items.map((d: { hostname: string }) => d.hostname)).toContain(host);
 
       const b = (await seller(ownerB).get().expect(200)).body;

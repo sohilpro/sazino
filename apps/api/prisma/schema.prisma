@@ -57,16 +57,18 @@ enum PaymentStatus {
 
 /// هر فروشگاه یک Tenant است
 model Tenant {
-    id        String       @id @default(uuid(7)) @db.Uuid
-    name      String
+    id              String       @id @default(uuid(7)) @db.Uuid
+    name            String
     /// همیشه lowercase ذخیره شود (در لایه‌ی سرویس نرمال می‌کنیم)
-    subdomain String       @unique
-    plan      TenantPlan   @default(FREE)
-    status    TenantStatus @default(ACTIVE)
+    subdomain       String       @unique
+    plan            TenantPlan   @default(FREE)
+    status          TenantStatus @default(ACTIVE)
     /// تنظیمات انعطاف‌پذیر (لوگو، رنگ، اطلاعات تماس و ...)
-    settings  Json         @default("{}")
-    createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-    updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+    settings        Json         @default("{}")
+    suspendedAt     DateTime?    @map("suspended_at") @db.Timestamptz(3)
+    suspendedReason String?      @map("suspended_reason")
+    createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
     users   User[]
     domains Domain[]
@@ -563,4 +565,72 @@ model Page {
     @@unique([tenantId, slug])
     @@index([tenantId, publishedAt])
     @@map("pages")
+}
+
+/// سقف‌های هر پلن؛ ردیف‌های ناموجود با مقدار پیش‌فرض ساخته می‌شوند (نگاه کن به plan-defaults.ts)
+model Plan {
+  /// FREE | BASIC | PRO (با مقادیر enum TenantPlan یکی است)
+  key          String   @id
+  name         String
+  /// null = نامحدود
+  maxProducts  Int?     @map("max_products")
+  maxDomains   Int?     @map("max_domains")
+  maxMediaMb   Int?     @map("max_media_mb")
+  /// فقط نمایشی (صورت‌حساب‌دهی خودکار هنوز نیست)
+  priceMonthly Int      @default(0) @map("price_monthly")
+  sortOrder    Int      @default(0) @map("sort_order")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("plans")
+}
+
+/// مدیر کل پلتفرم؛ کاملاً جدا از User فروشنده‌ها
+model PlatformAdmin {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions AdminSession[]
+
+  @@map("platform_admins")
+}
+
+model AdminSession {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  adminId   String   @map("admin_id") @db.Uuid
+  /// فقط هش SHA-256 توکن کوکی ذخیره می‌شود
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  ip        String?
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}
+
+/// تاریخچه‌ی اقدامات ادمین؛ عمداً بدون کلید خارجی تا با حذف ادمین یا فروشگاه از بین نرود
+model AdminAuditLog {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  adminId        String?  @map("admin_id") @db.Uuid
+  adminEmail     String   @map("admin_email")
+  /// مثلاً tenant.suspend
+  action         String
+  /// فروشگاه هدف (نه مالک داده؛ پس این مدل tenant-scoped نیست)
+  targetTenantId String?  @map("target_tenant_id") @db.Uuid
+  details        Json     @default("{}")
+  ip             String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([targetTenantId, createdAt])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
 }

@@ -23,6 +23,7 @@ import {
 } from './product.dto';
 import { ProductsService } from './products.service';
 import { SetProductImagesDto } from '../media/media.dto';
+import { PlanLimit } from '../plans/plan-limit.guard';
 
 @ApiTags('products')
 @ApiBearerAuth()
@@ -35,6 +36,7 @@ export class ProductsController {
     return this.products.list(query);
   }
 
+  @PlanLimit('products')
   @Post()
   create(@Body() dto: CreateProductDto) {
     return this.products.create(dto);

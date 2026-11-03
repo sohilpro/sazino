@@ -10,7 +10,8 @@ const links = [
   { to: '/pages', label: 'صفحات', exact: false },
   { to: '/settings/theme', label: 'ظاهر فروشگاه', exact: false },
   { to: '/settings/payment', label: 'درگاه پرداخت', exact: false },
-    { to: '/settings/domains', label: 'دامنه‌ی اختصاصی', exact: false },
+  { to: '/settings/domains', label: 'دامنه‌ی اختصاصی', exact: false },
+  { to: '/settings/plan', label: 'پلن و مصرف', exact: false },
 ];
 
 const activeClass = 'bg-brand-50 font-semibold text-brand-700';
@@ -52,7 +53,12 @@ async function onLogout() {
       <div class="mt-6 border-t border-slate-200 pt-4 text-sm">
         <div class="font-medium">{{ user?.name }}</div>
         <div class="mb-3 text-xs text-slate-500">{{ user ? ROLE_LABEL[user.role] : '' }}</div>
-        <button type="button" class="btn btn-secondary btn-sm" :disabled="loggingOut" @click="onLogout">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm"
+          :disabled="loggingOut"
+          @click="onLogout"
+        >
           خروج
         </button>
       </div>

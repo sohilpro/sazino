@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  HttpException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'node:crypto';
 import type { DomainDto, DomainsDto, DomainVerifyDto } from '@myapp/shared-types';
@@ -17,7 +12,8 @@ import { InjectTenantDb, type TenantDb } from '../tenants/tenant-db';
 import { TenantResolver } from '../tenants/tenant-resolver';
 import { DnsUnavailableError } from './dns-lookup';
 import { DomainVerifier } from './domain-verifier';
-import { MAX_DOMAINS_PER_TENANT, REVALIDATE_MAX_FAILURES, VERIFY_COOLDOWN_MS } from './domains.constants';
+import { REVALIDATE_MAX_FAILURES, VERIFY_COOLDOWN_MS } from './domains.constants';
+import { PlanLimitsService } from '../plans/plan-limits.service';
 import { HOSTNAME_ERROR_MESSAGE, normalizeCustomHostname } from './hostname';
 
 export type RevalidateResult = 'ok' | 'failing' | 'disabled' | 'unavailable' | 'skipped';
@@ -32,6 +28,7 @@ export class DomainsService {
     private readonly ctx: TenantContext,
     private readonly verifier: DomainVerifier,
     private readonly resolver: TenantResolver,
+    private readonly planLimits: PlanLimitsService,
     config: ConfigService<Env, true>,
   ) {
     this.platformDomain = config.get('PLATFORM_DOMAIN', { infer: true });
@@ -39,10 +36,11 @@ export class DomainsService {
 
   // ───────────── خواندن ─────────────
   async list(): Promise<DomainsDto> {
-    const rows = await this.db.domain.findMany({
-      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-    });
-    return { items: rows.map((d) => this.toDto(d)), limit: MAX_DOMAINS_PER_TENANT };
+    const [rows, limit] = await Promise.all([
+      this.db.domain.findMany({ orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] }),
+      this.planLimits.limitFor('domains'),
+    ]);
+    return { items: rows.map((d) => this.toDto(d)), limit };
   }
 
   // ───────────── افزودن ─────────────
@@ -53,9 +51,6 @@ export class DomainsService {
     if (!parsed.ok) throw new BadRequestException(HOSTNAME_ERROR_MESSAGE[parsed.reason]);
     const { hostname } = parsed;
 
-    if ((await this.db.domain.count()) >= MAX_DOMAINS_PER_TENANT) {
-      throw conflict('DOMAIN_LIMIT', `حداکثر ${MAX_DOMAINS_PER_TENANT} دامنه می‌توانید ثبت کنید`);
-    }
     if (await this.db.domain.findFirst({ where: { hostname }, select: { id: true } })) {
       throw conflict('DOMAIN_EXISTS', 'این دامنه قبلاً در فروشگاه شما ثبت شده است');
     }
@@ -158,7 +153,10 @@ export class DomainsService {
     }
 
     const updated = await this.db.$transaction(async (tx) => {
-      await tx.domain.updateMany({ where: { isPrimary: true, NOT: { id } }, data: { isPrimary: false } });
+      await tx.domain.updateMany({
+        where: { isPrimary: true, NOT: { id } },
+        data: { isPrimary: false },
+      });
       return tx.domain.update({ where: { id }, data: { isPrimary: true } });
     });
     return this.toDto(updated);

@@ -15,6 +15,7 @@ import { ImageProcessor } from './image-processor';
 import { IMAGE_CONTENT_TYPE } from './media.constants';
 import type { UpdateMediaDto, UploadMediaDto } from './media.dto';
 import type { UploadedImageFile } from './uploaded-file';
+import { PlanLimitsService } from '../plans/plan-limits.service';
 
 interface MediaRow {
   id: string;
@@ -39,7 +40,10 @@ function cleanFilename(name: string | undefined): string {
   }
   return (
     // eslint-disable-next-line no-control-regex
-    decoded.replace(/[\\/\u0000-\u001f]/g, '').trim().slice(0, 200) || 'image'
+    decoded
+      .replace(/[\\/\u0000-\u001f]/g, '')
+      .trim()
+      .slice(0, 200) || 'image'
   );
 }
 
@@ -52,12 +56,17 @@ export class MediaService {
     private readonly ctx: TenantContext,
     private readonly processor: ImageProcessor,
     private readonly storage: StorageService,
+    private readonly limits: PlanLimitsService,
   ) {}
 
   async upload(file: UploadedImageFile | undefined, dto: UploadMediaDto): Promise<MediaDto> {
     if (!file?.buffer?.length) {
-      throw new BadRequestException('فایلی ارسال نشده است (فیلد multipart باید file نام داشته باشد)');
+      throw new BadRequestException(
+        'فایلی ارسال نشده است (فیلد multipart باید file نام داشته باشد)',
+      );
     }
+
+    await this.limits.assertMediaQuota(file.size);
 
     const tenantId = this.ctx.require();
     const processed = await this.processor.process(file.buffer);
@@ -73,7 +82,9 @@ export class MediaService {
     } catch (err) {
       this.logger.error(`Upload to storage failed: ${(err as Error).message}`);
       await this.storage.deleteMany(allKeys).catch(() => undefined);
-      throw new ServiceUnavailableException('ذخیره‌سازی تصویر در دسترس نیست، کمی بعد دوباره تلاش کنید');
+      throw new ServiceUnavailableException(
+        'ذخیره‌سازی تصویر در دسترس نیست، کمی بعد دوباره تلاش کنید',
+      );
     }
 
     try {

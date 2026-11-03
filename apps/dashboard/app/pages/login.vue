@@ -40,6 +40,14 @@ async function submit() {
     <h1 class="mb-1 text-2xl font-extrabold">ورود به پنل فروشنده</h1>
     <p class="mb-6 text-sm text-slate-500">برای مدیریت فروشگاه خود وارد شوید.</p>
 
+    <p
+      v-if="route.query.suspended"
+      class="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800"
+      role="alert"
+    >
+      فروشگاه شما توسط پلتفرم تعلیق شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
+    </p>
+
     <form class="space-y-4" novalidate @submit.prevent="submit">
       <label class="block">
         <span class="label">ایمیل</span>

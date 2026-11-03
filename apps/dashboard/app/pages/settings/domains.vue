@@ -88,27 +88,56 @@ async function copy(text: string) {
   <div class="max-w-4xl space-y-6">
     <header>
       <h1 class="text-2xl font-extrabold">دامنه‌ی اختصاصی</h1>
-      <p class="text-sm text-slate-500">فروشگاهتان را با دامنه‌ی خودتان (مثل shop.example.com) منتشر کنید.</p>
+      <p class="text-sm text-slate-500">
+        فروشگاهتان را با دامنه‌ی خودتان (مثل shop.example.com) منتشر کنید.
+      </p>
     </header>
 
     <p v-if="error" class="card text-red-700">{{ apiErrorMessage(error) }}</p>
 
     <template v-else-if="data">
-      <form v-if="canManage" class="card flex flex-wrap items-end gap-3" novalidate @submit.prevent="add">
+      <form
+        v-if="canManage"
+        class="card flex flex-wrap items-end gap-3"
+        novalidate
+        @submit.prevent="add"
+      >
         <label class="min-w-64 flex-1">
           <span class="label">دامنه‌ی جدید</span>
-          <input v-model="hostname" class="input" dir="ltr" maxlength="300" placeholder="shop.example.com" />
+          <input
+            v-model="hostname"
+            class="input"
+            dir="ltr"
+            maxlength="300"
+            placeholder="shop.example.com"
+          />
         </label>
-        <button type="submit" class="btn btn-primary" :disabled="adding || data.items.length >= data.limit">
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="adding || (data.limit !== null && data.items.length >= data.limit)"
+        >
           {{ adding ? 'در حال افزودن…' : 'افزودن' }}
         </button>
+        <p v-if="data.limit === 0" class="w-full text-sm text-amber-700">
+          پلن فعلی شما دامنه‌ی اختصاصی ندارد؛
+          <NuxtLink to="/settings/plan" class="underline">پلن و مصرف</NuxtLink>
+        </p>
+        <p v-else class="w-full text-xs text-slate-500">
+          {{ formatNumber(data.items.length) }} از
+          {{ data.limit === null ? 'نامحدود' : formatNumber(data.limit) }} دامنه. برای دامنه‌ی اصلی
+          و «www» هر کدام را جداگانه اضافه کنید.
+        </p>
         <p class="w-full text-xs text-slate-500">
-          {{ formatNumber(data.items.length) }} از {{ formatNumber(data.limit) }} دامنه. برای دامنه‌ی اصلی و
-          «www» هر کدام را جداگانه اضافه کنید.
+          {{ formatNumber(data.items.length) }} از {{ formatNumber(data.limit) }} دامنه. برای
+          دامنه‌ی اصلی و «www» هر کدام را جداگانه اضافه کنید.
         </p>
       </form>
 
-      <p v-if="!data.items.length" class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
+      <p
+        v-if="!data.items.length"
+        class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500"
+      >
         هنوز دامنه‌ای اضافه نکرده‌اید.
       </p>
 
@@ -137,7 +166,9 @@ async function copy(text: string) {
             >
               دامنه‌ی اصلی شود
             </button>
-            <button type="button" class="btn btn-secondary btn-sm text-red-600" @click="remove(d)">حذف</button>
+            <button type="button" class="btn btn-secondary btn-sm text-red-600" @click="remove(d)">
+              حذف
+            </button>
           </div>
         </header>
 
@@ -147,8 +178,8 @@ async function copy(text: string) {
 
         <template v-else>
           <p class="text-sm leading-7 text-slate-600">
-            این دو رکورد را در پنل DNS ثبت‌کننده‌ی دامنه (مثلاً Cloudflare یا پنل ثبت دامنه) اضافه کنید، سپس
-            «بررسی» را بزنید. اعمال رکوردها ممکن است از چند دقیقه تا چند ساعت طول بکشد.
+            این دو رکورد را در پنل DNS ثبت‌کننده‌ی دامنه (مثلاً Cloudflare یا پنل ثبت دامنه) اضافه
+            کنید، سپس «بررسی» را بزنید. اعمال رکوردها ممکن است از چند دقیقه تا چند ساعت طول بکشد.
           </p>
 
           <div class="overflow-x-auto">
@@ -166,35 +197,66 @@ async function copy(text: string) {
                   <td class="px-2 py-2 font-medium">TXT</td>
                   <td class="px-2 py-2 break-all">{{ d.dns.txtName }}</td>
                   <td class="px-2 py-2 break-all">{{ d.dns.txtValue }}</td>
-                  <td class="px-2 py-2"><button type="button" class="btn btn-secondary btn-sm" @click="copy(d.dns.txtValue)">کپی</button></td>
+                  <td class="px-2 py-2">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      @click="copy(d.dns.txtValue)"
+                    >
+                      کپی
+                    </button>
+                  </td>
                 </tr>
                 <tr>
                   <td class="px-2 py-2 font-medium">CNAME</td>
                   <td class="px-2 py-2 break-all">{{ d.hostname }}</td>
                   <td class="px-2 py-2 break-all">{{ d.dns.cnameTarget }}</td>
-                  <td class="px-2 py-2"><button type="button" class="btn btn-secondary btn-sm" @click="copy(d.dns.cnameTarget)">کپی</button></td>
+                  <td class="px-2 py-2">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn-sm"
+                      @click="copy(d.dns.cnameTarget)"
+                    >
+                      کپی
+                    </button>
+                  </td>
                 </tr>
                 <tr v-for="ip in d.dns.addresses" :key="ip">
                   <td class="px-2 py-2 font-medium">A</td>
                   <td class="px-2 py-2">@</td>
                   <td class="px-2 py-2">{{ ip }}</td>
-                  <td class="px-2 py-2"><button type="button" class="btn btn-secondary btn-sm" @click="copy(ip)">کپی</button></td>
+                  <td class="px-2 py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" @click="copy(ip)">
+                      کپی
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <ul class="list-disc space-y-1 ps-5 text-xs leading-6 text-slate-500">
-            <li>برای زیردامنه (مثل shop.example.com یا www.example.com) از رکورد <b>CNAME</b> استفاده کنید.</li>
             <li>
-              برای دامنه‌ی اصلی (example.com) CNAME مجاز نیست؛ از رکورد <b>A</b> (در صورت نمایش بالا) یا
-              <b>ALIAS / ANAME / CNAME flattening</b> به همان مقدار CNAME استفاده کنید.
+              برای زیردامنه (مثل shop.example.com یا www.example.com) از رکورد <b>CNAME</b> استفاده
+              کنید.
             </li>
-            <li>اگر از Cloudflare استفاده می‌کنید، تا پایان تأیید ابر نارنجی (Proxy) را خاموش (خاکستری) کنید.</li>
+            <li>
+              برای دامنه‌ی اصلی (example.com) CNAME مجاز نیست؛ از رکورد <b>A</b> (در صورت نمایش
+              بالا) یا <b>ALIAS / ANAME / CNAME flattening</b> به همان مقدار CNAME استفاده کنید.
+            </li>
+            <li>
+              اگر از Cloudflare استفاده می‌کنید، تا پایان تأیید ابر نارنجی (Proxy) را خاموش
+              (خاکستری) کنید.
+            </li>
           </ul>
 
           <div v-if="canManage" class="flex flex-wrap items-center gap-3">
-            <button type="button" class="btn btn-primary" :disabled="busy === d.id" @click="verify(d)">
+            <button
+              type="button"
+              class="btn btn-primary"
+              :disabled="busy === d.id"
+              @click="verify(d)"
+            >
               {{ busy === d.id ? 'در حال بررسی…' : 'بررسی' }}
             </button>
             <span v-if="d.lastCheckedAt" class="text-xs text-slate-500">
@@ -204,14 +266,32 @@ async function copy(text: string) {
 
           <div v-if="results[d.id]?.checks" class="space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
             <p :class="results[d.id]!.checks!.txt.ok ? 'text-emerald-700' : 'text-red-700'">
-              {{ results[d.id]!.checks!.txt.ok ? '✓ رکورد TXT درست است.' : '✗ رکورد TXT پیدا نشد یا مقدارش فرق دارد.' }}
-              <span v-if="!results[d.id]!.checks!.txt.ok && results[d.id]!.checks!.txt.found.length" class="block text-xs text-slate-500" dir="ltr">
+              {{
+                results[d.id]!.checks!.txt.ok
+                  ? '✓ رکورد TXT درست است.'
+                  : '✗ رکورد TXT پیدا نشد یا مقدارش فرق دارد.'
+              }}
+              <span
+                v-if="!results[d.id]!.checks!.txt.ok && results[d.id]!.checks!.txt.found.length"
+                class="block text-xs text-slate-500"
+                dir="ltr"
+              >
                 دیده‌شده: {{ results[d.id]!.checks!.txt.found.join(' | ') }}
               </span>
             </p>
             <p :class="results[d.id]!.checks!.routing.ok ? 'text-emerald-700' : 'text-red-700'">
-              {{ results[d.id]!.checks!.routing.ok ? '✓ آدرس دامنه به فروشگاه اشاره می‌کند.' : '✗ CNAME (یا A) هنوز به آدرس درست اشاره نمی‌کند.' }}
-              <span v-if="!results[d.id]!.checks!.routing.ok && results[d.id]!.checks!.routing.cname.length" class="block text-xs text-slate-500" dir="ltr">
+              {{
+                results[d.id]!.checks!.routing.ok
+                  ? '✓ آدرس دامنه به فروشگاه اشاره می‌کند.'
+                  : '✗ CNAME (یا A) هنوز به آدرس درست اشاره نمی‌کند.'
+              }}
+              <span
+                v-if="
+                  !results[d.id]!.checks!.routing.ok && results[d.id]!.checks!.routing.cname.length
+                "
+                class="block text-xs text-slate-500"
+                dir="ltr"
+              >
                 CNAME دیده‌شده: {{ results[d.id]!.checks!.routing.cname.join(' | ') }}
               </span>
             </p>

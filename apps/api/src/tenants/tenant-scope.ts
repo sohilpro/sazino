@@ -26,7 +26,13 @@ export const SCOPED_MODELS = [
 export const ROOT_MODELS = ['Tenant'] as const;
 
 /** فقط با PrismaService (دسترسی سیستمی) قابل استفاده‌اند */
-export const SYSTEM_ONLY_MODELS = ['RefreshToken'] as const;
+export const SYSTEM_ONLY_MODELS = [
+  'RefreshToken',
+  'Plan',
+  'PlatformAdmin',
+  'AdminSession',
+  'AdminAuditLog',
+] as const;
 
 export type ModelKind = 'scoped' | 'root' | 'system';
 

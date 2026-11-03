@@ -10,6 +10,7 @@ import { TenantContext } from './tenant-context';
 import { TenantMiddleware } from './tenant.middleware';
 import { TenantResolver } from './tenant-resolver';
 import { StoreUrlService } from './store-url.service';
+import { TenantStatusService } from './tenant-status.service';
 
 @Global()
 @Module({
@@ -20,13 +21,14 @@ import { StoreUrlService } from './store-url.service';
     StoreService,
     StoreSettingsService,
     StoreUrlService,
+    TenantStatusService,
     {
       provide: TENANT_DB,
       inject: [PrismaService, TenantContext],
       useFactory: (prisma: PrismaService, ctx: TenantContext) => createTenantClient(prisma, ctx),
     },
   ],
-  exports: [TenantContext, TenantResolver, TENANT_DB, StoreUrlService],
+  exports: [TenantContext, TenantResolver, TENANT_DB, StoreUrlService, TenantStatusService],
 })
 export class TenantsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

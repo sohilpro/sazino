@@ -1,9 +1,19 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { DomainDto, DomainsDto, DomainVerifyDto } from '@myapp/shared-types';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AddDomainDto } from './domain.dto';
 import { DomainsService } from './domains.service';
+import { PlanLimit } from '../plans/plan-limit.guard';
 
 @ApiTags('domains')
 @ApiBearerAuth()
@@ -17,6 +27,7 @@ export class DomainsController {
   }
 
   @Roles('OWNER', 'ADMIN')
+  @PlanLimit('domains')
   @Post()
   add(@Body() dto: AddDomainDto): Promise<DomainDto> {
     return this.domains.add(dto.hostname);

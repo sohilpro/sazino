@@ -1,4 +1,3 @@
-export const MAX_DOMAINS_PER_TENANT = 5;
 /** حداقل فاصله‌ی دو بررسی DNS برای یک دامنه */
 export const VERIFY_COOLDOWN_MS = 10_000;
 /** بعد از این‌همه بررسی روزانه‌ی ناموفق پشت‌سرهم، دامنه غیرفعال می‌شود */

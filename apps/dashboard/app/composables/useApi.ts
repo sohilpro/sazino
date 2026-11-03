@@ -34,6 +34,12 @@ export function useApi() {
     try {
       return await send<T>(path, opts);
     } catch (err) {
+      // فروشگاه توسط پلتفرم تعلیق شده: نشست محلی بسته و به صفحه‌ی ورود با پیام می‌رویم
+      if (statusOf(err) === 403 && codeOf(err) === 'TENANT_SUSPENDED') {
+        auth.clear();
+        await navigateTo({ path: '/login', query: { suspended: '1' } });
+        throw err;
+      }
       if (statusOf(err) !== 401) throw err;
 
       // توکن منقضی یا باطل شده: یک‌بار تمدید و تلاش مجدد

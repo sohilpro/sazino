@@ -118,5 +118,6 @@ export function useAuth() {
     ensureFresh,
     authHeader,
     logout,
+    clear,
   };
 }

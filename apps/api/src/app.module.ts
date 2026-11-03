@@ -30,6 +30,9 @@ import { DEFAULT_JOB_OPTIONS, redisConnection } from './jobs/queue.config';
 import type { Env } from './config/env';
 import { PagesModule } from './pages/pages.module';
 import { DomainsModule } from './domains/domains.module';
+import { PlansModule } from './plans/plans.module';
+import { AdminModule } from './admin/admin.module';
+import { PlanLimitGuard } from './plans/plan-limit.guard';
 
 @Module({
   imports: [
@@ -69,13 +72,16 @@ import { DomainsModule } from './domains/domains.module';
     CryptoModule,
     PaymentsModule,
     PagesModule,
-    DomainsModule
+    DomainsModule,
+    AdminModule,
+    PlansModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: PlanLimitGuard },
     { provide: APP_FILTER, useClass: AppExceptionFilter },
   ],
 })

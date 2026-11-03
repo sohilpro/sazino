@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient } from '../../src/generated/prisma/client';
+import type { TenantPlan } from '@myapp/shared-types';
 
 /** کد یکتا برای هر فایل تست؛ تداخل بین اجراها را از بین می‌برد */
 export const RUN = randomUUID().replace(/-/g, '').slice(0, 8);
@@ -7,9 +8,13 @@ export const RUN = randomUUID().replace(/-/g, '').slice(0, 8);
 export const PLATFORM_DOMAIN = (process.env.PLATFORM_DOMAIN ?? 'localhost').toLowerCase();
 
 /** یک فروشگاه کامل: tenant + owner + editor + دامنه‌ی اختصاصی تأییدشده */
-export async function createFixture(prisma: PrismaClient, tag: string) {
+export async function createFixture(
+  prisma: PrismaClient,
+  tag: string,
+  opts: { plan?: TenantPlan } = {},
+) {
   const tenant = await prisma.tenant.create({
-    data: { name: `Tenant ${tag}`, subdomain: `t4${tag}${RUN}` },
+    data: { name: `Tenant ${tag}`, subdomain: `t4${tag}${RUN}`, plan: opts.plan ?? 'PRO' },
   });
   const owner = await prisma.user.create({
     data: {

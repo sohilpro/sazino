@@ -21,6 +21,7 @@
     "db:reset": "prisma migrate reset",
     "pretest": "prisma generate",
     "test": "vitest run",
+    "admin:create": "tsx scripts/create-admin.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

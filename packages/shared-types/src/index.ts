@@ -498,7 +498,8 @@ export interface DomainDto {
 
 export interface DomainsDto {
   items: DomainDto[];
-  limit: number;
+  /** null = نامحدود */
+  limit: number | null;
 }
 
 export interface DomainCheckDto {
@@ -513,4 +514,78 @@ export interface DomainVerifyDto {
   checks: DomainCheckDto | null;
   /** DNS پاسخ نداد؛ نتیجه نامشخص است (نه ناموفق) */
   unavailable: boolean;
+}
+
+// ───────────── پلن‌ها ─────────────
+export interface PlanDto {
+  key: TenantPlan;
+  name: string;
+  /** null = نامحدود */
+  maxProducts: number | null;
+  maxDomains: number | null;
+  maxMediaMb: number | null;
+  priceMonthly: number;
+  sortOrder: number;
+}
+
+export interface PlanUsage {
+  products: number;
+  domains: number;
+  mediaBytes: number;
+}
+
+export interface PlanUsageDto {
+  plan: PlanDto;
+  usage: PlanUsage;
+}
+
+// ───────────── سوپر ادمین ─────────────
+export interface AdminDto {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface AdminTenantSummaryDto {
+  id: string;
+  name: string;
+  subdomain: string;
+  plan: TenantPlan;
+  status: TenantStatus;
+  ownerEmail: string | null;
+  productCount: number;
+  orderCount: number;
+  customerCount: number;
+  domainCount: number;
+  createdAt: string;
+  suspendedAt: string | null;
+}
+
+export interface AdminAuditEntryDto {
+  id: string;
+  adminEmail: string;
+  action: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AdminTenantDetailDto extends AdminTenantSummaryDto {
+  suspendedReason: string | null;
+  planInfo: PlanDto;
+  usage: PlanUsage;
+  staff: Array<{
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole;
+    isActive: boolean;
+    lastLoginAt: string | null;
+  }>;
+  domains: Array<{ hostname: string; status: DomainStatus; isPrimary: boolean }>;
+  audit: AdminAuditEntryDto[];
+}
+
+export interface AdminStatsDto {
+  tenants: Record<TenantStatus, number>;
+  byPlan: Record<TenantPlan, number>;
 }
