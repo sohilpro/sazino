@@ -5,7 +5,16 @@ import {
   type PipeTransform,
 } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 import type { TenantPlan } from '@myapp/shared-types';
 import { trim } from '../common/transforms';
 import { isPlanKey } from './plan-defaults';
@@ -40,6 +49,7 @@ export class UpdatePlanDto {
   @ValidateIf((_, value) => value !== undefined)
   @IsInt()
   @Min(0)
+  @Max(2_000_000_000)
   priceMonthly?: number;
 }
 

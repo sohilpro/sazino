@@ -11,7 +11,12 @@ import { REDIS_CLIENT } from '../../src/redis/redis.module';
 import { CACHE_PREFIX } from '../../src/tenants/tenant-resolver';
 import { cookieHeader, cookieLine, cookieValue } from '../helpers/cookies';
 import { createTestApp } from '../helpers/create-app';
-import { cleanupFixtures, createFixture, subdomainHost, type TenantFixture } from '../helpers/fixtures';
+import {
+  cleanupFixtures,
+  createFixture,
+  subdomainHost,
+  type TenantFixture,
+} from '../helpers/fixtures';
 
 const RUN = randomUUID().slice(0, 6);
 const PASSWORD = 'AdminPass-12345';
@@ -29,8 +34,10 @@ describe('Super admin', () => {
   const http = () => request(app.getHttpServer());
   const admin = {
     get: (p: string) => http().get(`/api/admin${p}`).set('Cookie', cookie),
-    post: (p: string, body: object = {}) => http().post(`/api/admin${p}`).set('Cookie', cookie).send(body),
-    put: (p: string, body: object = {}) => http().put(`/api/admin${p}`).set('Cookie', cookie).send(body),
+    post: (p: string, body: object = {}) =>
+      http().post(`/api/admin${p}`).set('Cookie', cookie).send(body),
+    put: (p: string, body: object = {}) =>
+      http().put(`/api/admin${p}`).set('Cookie', cookie).send(body),
   };
   const loginAs = (email: string, password: string) =>
     http().post('/api/admin/auth/login').send({ email, password });
@@ -44,7 +51,12 @@ describe('Super admin', () => {
   async function newAdmin(opts: { isActive?: boolean } = {}) {
     const email = `admin-${randomUUID().slice(0, 8)}-${RUN}@platform.test`;
     await prisma.platformAdmin.create({
-      data: { email, name: 'ادمین تست', passwordHash: await bcrypt.hash(PASSWORD, 4), isActive: opts.isActive ?? true },
+      data: {
+        email,
+        name: 'ادمین تست',
+        passwordHash: await bcrypt.hash(PASSWORD, 4),
+        isActive: opts.isActive ?? true,
+      },
     });
     return email;
   }
@@ -94,8 +106,12 @@ describe('Super admin', () => {
     for (const p of DEFAULT_PLANS) {
       await prisma.plan.upsert({ where: { key: p.key }, update: { ...p }, create: { ...p } });
     }
-    await prisma.platformAdmin.deleteMany({ where: { email: { endsWith: `-${RUN}@platform.test` } } });
-    await prisma.adminAuditLog.deleteMany({ where: { adminEmail: { endsWith: `-${RUN}@platform.test` } } });
+    await prisma.platformAdmin.deleteMany({
+      where: { email: { endsWith: `-${RUN}@platform.test` } },
+    });
+    await prisma.adminAuditLog.deleteMany({
+      where: { adminEmail: { endsWith: `-${RUN}@platform.test` } },
+    });
     await prisma.tenant.deleteMany({ where: { id: { in: registeredTenants } } });
     await redis.del(...fixtures.map((f) => CACHE_PREFIX + subdomainHost(f)));
     await cleanupFixtures(prisma, fixtures);
@@ -117,7 +133,10 @@ describe('Super admin', () => {
       expect(line).toContain('SameSite=Strict');
       expect(line).toContain('Path=/api/admin');
 
-      const me = await http().get('/api/admin/auth/me').set('Cookie', cookieHeader({ admin_session: cookieValue(res, 'admin_session') })).expect(200);
+      const me = await http()
+        .get('/api/admin/auth/me')
+        .set('Cookie', cookieHeader({ admin_session: cookieValue(res, 'admin_session') }))
+        .expect(200);
       expect(me.body.email).toBe(email);
     });
 
@@ -159,7 +178,10 @@ describe('Super admin', () => {
     it('validates the payload', async () => {
       await loginAs('not-an-email', PASSWORD).expect(400);
       await http().post('/api/admin/auth/login').send({ email: adminEmail }).expect(400);
-      await http().post('/api/admin/auth/login').send({ email: adminEmail, password: PASSWORD, extra: 1 }).expect(400);
+      await http()
+        .post('/api/admin/auth/login')
+        .send({ email: adminEmail, password: PASSWORD, extra: 1 })
+        .expect(400);
     });
 
     it('logout revokes the session and clears the cookie', async () => {
@@ -182,7 +204,10 @@ describe('Super admin', () => {
       await http().get('/api/admin/auth/me').set('Cookie', c).expect(401);
 
       await prisma.platformAdmin.update({ where: { email }, data: { isActive: true } });
-      await prisma.adminSession.updateMany({ where: { admin: { is: { email } } }, data: { expiresAt: new Date(Date.now() - 1000) } });
+      await prisma.adminSession.updateMany({
+        where: { admin: { is: { email } } },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
       await http().get('/api/admin/auth/me').set('Cookie', c).expect(401);
     });
 
@@ -217,13 +242,22 @@ describe('Super admin', () => {
         domainCount: 1, // دامنه‌ی fixture
       });
 
-      const byOwner = await admin.get(`/tenants?q=${encodeURIComponent(b.f.owner.email)}`).expect(200);
+      const byOwner = await admin
+        .get(`/tenants?q=${encodeURIComponent(b.f.owner.email)}`)
+        .expect(200);
       expect(byOwner.body.items.map((t: { id: string }) => t.id)).toEqual([b.f.tenant.id]);
 
-      const suspended = await admin.get(`/tenants?status=SUSPENDED&q=${b.f.tenant.subdomain}`).expect(200);
+      const suspended = await admin
+        .get(`/tenants?status=SUSPENDED&q=${b.f.tenant.subdomain}`)
+        .expect(200);
       expect(suspended.body.items).toHaveLength(1);
-      expect((await admin.get(`/tenants?status=ACTIVE&q=${b.f.tenant.subdomain}`).expect(200)).body.items).toEqual([]);
-      expect((await admin.get(`/tenants?plan=PRO&q=${b.f.tenant.subdomain}`).expect(200)).body.items).toHaveLength(1);
+      expect(
+        (await admin.get(`/tenants?status=ACTIVE&q=${b.f.tenant.subdomain}`).expect(200)).body
+          .items,
+      ).toEqual([]);
+      expect(
+        (await admin.get(`/tenants?plan=PRO&q=${b.f.tenant.subdomain}`).expect(200)).body.items,
+      ).toHaveLength(1);
 
       const page = await admin.get('/tenants?limit=1&page=2').expect(200);
       expect(page.body.items).toHaveLength(1);
@@ -239,7 +273,14 @@ describe('Super admin', () => {
     it('shows full details: usage, plan, staff, domains and audit entries', async () => {
       const { f } = await store('detail', 'BASIC');
       await prisma.media.create({
-        data: { tenantId: f.tenant.id, originalName: 'a.jpg', mimeType: 'image/jpeg', sizeBytes: 5000, width: 1, height: 1 },
+        data: {
+          tenantId: f.tenant.id,
+          originalName: 'a.jpg',
+          mimeType: 'image/jpeg',
+          sizeBytes: 5000,
+          width: 1,
+          height: 1,
+        },
       });
 
       const res = await admin.get(`/tenants/${f.tenant.id}`).expect(200);
@@ -250,7 +291,9 @@ describe('Super admin', () => {
         planInfo: { key: 'BASIC' },
         usage: { products: 0, domains: 1, mediaBytes: 5000 },
       });
-      expect(res.body.staff.map((u: { email: string }) => u.email).sort()).toEqual([f.owner.email, f.editor.email].sort());
+      expect(res.body.staff.map((u: { email: string }) => u.email).sort()).toEqual(
+        [f.owner.email, f.editor.email].sort(),
+      );
       expect(res.body.staff[0]).not.toHaveProperty('passwordHash');
       expect(res.body.domains).toHaveLength(1);
       expect(res.body.audit).toEqual([]);
@@ -268,8 +311,13 @@ describe('Super admin', () => {
       const res = await admin.get('/stats').expect(200);
       expect(res.body.tenants.ACTIVE).toBeGreaterThanOrEqual(1);
       expect(Object.keys(res.body.byPlan).sort()).toEqual(['BASIC', 'FREE', 'PRO']);
-      const total = Object.values(res.body.tenants as Record<string, number>).reduce((a, b) => a + b, 0);
-      expect(total).toBe(Object.values(res.body.byPlan as Record<string, number>).reduce((a, b) => a + b, 0));
+      const total = Object.values(res.body.tenants as Record<string, number>).reduce(
+        (a, b) => a + b,
+        0,
+      );
+      expect(total).toBe(
+        Object.values(res.body.byPlan as Record<string, number>).reduce((a, b) => a + b, 0),
+      );
     });
   });
 
@@ -277,11 +325,14 @@ describe('Super admin', () => {
   describe('suspension', () => {
     it('cuts access immediately: seller api, storefront, login and refresh', async () => {
       const t = await register();
-      const sellerGet = () => http().get('/api/plan').set('Authorization', `Bearer ${t.accessToken}`);
+      const sellerGet = () =>
+        http().get('/api/plan').set('Authorization', `Bearer ${t.accessToken}`);
 
       await sellerGet().expect(200); // کش وضعیت گرم می‌شود
 
-      const res = await admin.post(`/tenants/${t.id}/suspend`, { reason: '  نقض قوانین  ' }).expect(200);
+      const res = await admin
+        .post(`/tenants/${t.id}/suspend`, { reason: '  نقض قوانین  ' })
+        .expect(200);
       expect(res.body).toMatchObject({ status: 'SUSPENDED', suspendedReason: 'نقض قوانین' });
       expect(res.body.suspendedAt).not.toBeNull();
 
@@ -291,10 +342,16 @@ describe('Super admin', () => {
 
       // ویترین
       const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: t.id } });
-      await http().get('/api/store').set('Host', subdomainHost({ tenant } as TenantFixture)).expect(403);
+      await http()
+        .get('/api/store')
+        .set('Host', subdomainHost({ tenant } as TenantFixture))
+        .expect(403);
 
       // ورود دوباره و تمدید نشست
-      await http().post('/api/auth/login').send({ email: t.email, password: 'Password123!' }).expect(403);
+      await http()
+        .post('/api/auth/login')
+        .send({ email: t.email, password: 'Password123!' })
+        .expect(403);
       await http().post('/api/auth/refresh').set('Cookie', t.refresh).expect(401);
     });
 
@@ -304,10 +361,17 @@ describe('Super admin', () => {
       await http().get('/api/plan').set('Authorization', `Bearer ${t.accessToken}`).expect(403);
 
       const res = await admin.post(`/tenants/${t.id}/activate`).expect(200);
-      expect(res.body).toMatchObject({ status: 'ACTIVE', suspendedReason: null, suspendedAt: null });
+      expect(res.body).toMatchObject({
+        status: 'ACTIVE',
+        suspendedReason: null,
+        suspendedAt: null,
+      });
 
       await http().get('/api/plan').set('Authorization', `Bearer ${t.accessToken}`).expect(200);
-      await http().post('/api/auth/login').send({ email: t.email, password: 'Password123!' }).expect(200);
+      await http()
+        .post('/api/auth/login')
+        .send({ email: t.email, password: 'Password123!' })
+        .expect(200);
     });
 
     it('requires a reason and refuses repeated or pointless changes', async () => {
@@ -317,12 +381,15 @@ describe('Super admin', () => {
       await admin.post(`/tenants/${f.tenant.id}/suspend`, { reason: 'x'.repeat(301) }).expect(400);
       await admin.post(`/tenants/${f.tenant.id}/suspend`, { reason: 'دلیل', extra: 1 }).expect(400);
 
-      expect((await admin.post(`/tenants/${f.tenant.id}/activate`).expect(409)).body.code).toBe('NOT_SUSPENDED');
+      expect((await admin.post(`/tenants/${f.tenant.id}/activate`).expect(409)).body.code).toBe(
+        'NOT_SUSPENDED',
+      );
 
       await admin.post(`/tenants/${f.tenant.id}/suspend`, { reason: 'دلیل معتبر' }).expect(200);
-      expect((await admin.post(`/tenants/${f.tenant.id}/suspend`, { reason: 'دوباره' }).expect(409)).body.code).toBe(
-        'ALREADY_SUSPENDED',
-      );
+      expect(
+        (await admin.post(`/tenants/${f.tenant.id}/suspend`, { reason: 'دوباره' }).expect(409)).body
+          .code,
+      ).toBe('ALREADY_SUSPENDED');
     });
 
     it('records who did what, with the reason and ip', async () => {
@@ -331,8 +398,14 @@ describe('Super admin', () => {
       await admin.post(`/tenants/${f.tenant.id}/activate`).expect(200);
 
       const detail = await admin.get(`/tenants/${f.tenant.id}`).expect(200);
-      expect(detail.body.audit.map((a: { action: string }) => a.action)).toEqual(['tenant.activate', 'tenant.suspend']);
-      expect(detail.body.audit[1]).toMatchObject({ adminEmail, details: { reason: 'بررسی حسابرسی' } });
+      expect(detail.body.audit.map((a: { action: string }) => a.action)).toEqual([
+        'tenant.activate',
+        'tenant.suspend',
+      ]);
+      expect(detail.body.audit[1]).toMatchObject({
+        adminEmail,
+        details: { reason: 'بررسی حسابرسی' },
+      });
 
       const row = await prisma.adminAuditLog.findFirstOrThrow({
         where: { targetTenantId: f.tenant.id, action: 'tenant.suspend' },
@@ -352,7 +425,9 @@ describe('Super admin', () => {
       expect(res.body).toMatchObject({ plan: 'PRO', planInfo: { key: 'PRO' } });
       expect((await sellerPlan().expect(200)).body.plan.key).toBe('PRO');
 
-      const audit = await prisma.adminAuditLog.findFirstOrThrow({ where: { targetTenantId: f.tenant.id, action: 'tenant.plan' } });
+      const audit = await prisma.adminAuditLog.findFirstOrThrow({
+        where: { targetTenantId: f.tenant.id, action: 'tenant.plan' },
+      });
       expect(audit.details).toEqual({ from: 'FREE', to: 'PRO' });
     });
 
@@ -375,7 +450,13 @@ describe('Super admin', () => {
       expect(list.body.map((p: { key: string }) => p.key)).toEqual(['FREE', 'BASIC', 'PRO']);
 
       const res = await admin
-        .put('/plans/BASIC', { name: 'پایه‌ی جدید', maxProducts: null, maxDomains: 3, maxMediaMb: 4096, priceMonthly: 350_000 })
+        .put('/plans/BASIC', {
+          name: 'پایه‌ی جدید',
+          maxProducts: null,
+          maxDomains: 3,
+          maxMediaMb: 4096,
+          priceMonthly: 350_000,
+        })
         .expect(200);
       expect(res.body).toMatchObject({
         key: 'BASIC',
@@ -388,9 +469,13 @@ describe('Super admin', () => {
 
       // ویرایش جزئی فقط همان فیلد را عوض می‌کند
       await admin.put('/plans/BASIC', { maxDomains: 2 }).expect(200);
-      expect((await prisma.plan.findUniqueOrThrow({ where: { key: 'BASIC' } })).maxMediaMb).toBe(4096);
+      expect((await prisma.plan.findUniqueOrThrow({ where: { key: 'BASIC' } })).maxMediaMb).toBe(
+        4096,
+      );
 
-      const audit = await prisma.adminAuditLog.findFirstOrThrow({ where: { action: 'plan.update', adminEmail } });
+      const audit = await prisma.adminAuditLog.findFirstOrThrow({
+        where: { action: 'plan.update', adminEmail },
+      });
       expect(audit.targetTenantId).toBeNull();
     });
 
@@ -403,6 +488,7 @@ describe('Super admin', () => {
         { priceMonthly: -5 },
         { priceMonthly: null },
         { key: 'PRO' },
+        { priceMonthly: 2_000_000_001 },
       ]) {
         await admin.put('/plans/FREE', body).expect(400);
       }
