@@ -32,6 +32,7 @@ import {
 } from './orders.constants';
 import { computeTotals, type ShippingRule } from './pricing';
 import { ShippingService } from './shipping.service';
+import { StorefrontCacheService } from '../cache/storefront-cache.service';
 
 const MAX_INT = 2_147_483_647;
 
@@ -52,6 +53,7 @@ export class OrdersService {
     private readonly carts: CartService,
     private readonly addresses: AddressesService,
     private readonly shipping: ShippingService,
+    private readonly cache: StorefrontCacheService,
   ) {}
 
   // ───────────── پیش‌نمایش مبلغ ─────────────
@@ -179,7 +181,7 @@ export class OrdersService {
       // ۴) سبد خالی می‌شود
       await tx.cartItem.deleteMany({ where: { cart: { is: { customerId } } } });
     });
-
+    await this.cache.invalidate(tenantId);
     return this.getByNumber(customerId, number);
   }
 
@@ -282,6 +284,7 @@ export class OrdersService {
         }
       }
     });
+    if (restoresStock(order.status, to)) await this.cache.invalidate(this.ctx.require());
   }
 
   /** سفارش‌های پرداخت‌نشده‌ی منقضی را لغو و موجودی را آزاد می‌کند؛ تعداد آزادشده را برمی‌گرداند */

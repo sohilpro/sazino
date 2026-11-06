@@ -5,6 +5,7 @@ import { RequireTenant } from '../tenants/require-tenant.decorator';
 import { CategoriesService } from './categories.service';
 import { StorefrontProductQueryDto } from './product.dto';
 import { ProductsService } from './products.service';
+import { SlugParamPipe } from '../common/slug.pipe';
 
 /** API عمومی ویترین؛ فروشگاه از روی Host شناسایی می‌شود */
 @ApiTags('storefront')
@@ -23,7 +24,7 @@ export class StorefrontController {
   }
 
   @Get('products/:slug')
-  getProduct(@Param('slug') slug: string) {
+  getProduct(@Param('slug', SlugParamPipe) slug: string) {
     return this.products.getPublicBySlug(slug);
   }
 
@@ -33,7 +34,7 @@ export class StorefrontController {
   }
 
   @Get('categories/:slug')
-  getCategory(@Param('slug') slug: string) {
+  getCategory(@Param('slug', SlugParamPipe) slug: string) {
     return this.categories.getPublicBySlug(slug);
   }
 }

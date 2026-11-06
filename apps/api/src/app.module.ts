@@ -33,6 +33,10 @@ import { DomainsModule } from './domains/domains.module';
 import { PlansModule } from './plans/plans.module';
 import { AdminModule } from './admin/admin.module';
 import { PlanLimitGuard } from './plans/plan-limit.guard';
+import { CacheModule } from './cache/cache.module';
+import { RateLimitModule } from './rate-limit/rate-limit.module';
+import { RateLimitGuard } from './rate-limit/rate-limit.guard';
+import { SeoModule } from './seo/seo.module';
 
 @Module({
   imports: [
@@ -75,6 +79,9 @@ import { PlanLimitGuard } from './plans/plan-limit.guard';
     DomainsModule,
     AdminModule,
     PlansModule,
+    CacheModule,
+    RateLimitModule,
+    SeoModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
@@ -83,6 +90,7 @@ import { PlanLimitGuard } from './plans/plan-limit.guard';
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: PlanLimitGuard },
     { provide: APP_FILTER, useClass: AppExceptionFilter },
+    { provide: APP_GUARD, useClass: RateLimitGuard },
   ],
 })
 export class AppModule {}

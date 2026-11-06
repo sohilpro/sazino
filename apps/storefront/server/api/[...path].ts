@@ -68,6 +68,7 @@ export default defineEventHandler(async (event) => {
       headers: {
         'x-tenant-host': host,
         ...(ip ? { 'x-forwarded-for': ip } : {}),
+        ...(config.internalApiToken ? { 'x-internal-token': String(config.internalApiToken) } : {}),
       },
     });
   } catch {

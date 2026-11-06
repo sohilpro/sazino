@@ -4,13 +4,21 @@ import { MAX_RICH_TEXT } from '~/utils/blocks';
 
 const block = defineModel<StoredBlock>({ required: true });
 
-defineProps<{
+const props = defineProps<{
   categories: Array<{ slug: string; label: string }>;
   /** تصویر انتخاب‌شده‌ی بنر (برای نمایش) */
   image: ImageDto | null;
 }>();
 
 const emit = defineEmits<{ 'choose-image': []; 'clear-image': [] }>();
+
+/** دسته‌ی ذخیره‌شده‌ای که دیگر در فهرست دسته‌ها نیست (حذف شده) */
+const missingCategory = computed(() => {
+  const b = block.value;
+  if (b.type !== 'product-grid') return null;
+  const slug = b.props.categorySlug;
+  return slug && !props.categories.some((c) => c.slug === slug) ? slug : null;
+});
 </script>
 
 <template>
@@ -38,15 +46,28 @@ const emit = defineEmits<{ 'choose-image': []; 'clear-image': [] }>();
         <div>
           <span class="label">تصویر پس‌زمینه (اختیاری)</span>
           <div class="flex items-center gap-3">
-            <img v-if="image" :src="image.urls.thumb" :alt="image.alt ?? ''" class="size-14 rounded-lg object-cover" />
-            <div v-else class="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
+            <img
+              v-if="image"
+              :src="image.urls.thumb"
+              :alt="image.alt ?? ''"
+              class="size-14 rounded-lg object-cover"
+            />
+            <div
+              v-else
+              class="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400"
+            >
               بدون تصویر
             </div>
             <div class="flex gap-2">
               <button type="button" class="btn btn-secondary btn-sm" @click="emit('choose-image')">
                 {{ block.props.imageId ? 'تغییر' : 'انتخاب' }}
               </button>
-              <button v-if="block.props.imageId" type="button" class="btn btn-secondary btn-sm" @click="emit('clear-image')">
+              <button
+                v-if="block.props.imageId"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                @click="emit('clear-image')"
+              >
                 حذف
               </button>
             </div>
@@ -61,8 +82,16 @@ const emit = defineEmits<{ 'choose-image': []; 'clear-image': [] }>();
         </label>
         <label class="block">
           <span class="label">آدرس دکمه</span>
-          <input v-model="block.props.ctaHref" class="input" dir="ltr" maxlength="500" placeholder="/products" />
-          <span class="mt-1 block text-xs text-slate-500">مسیر داخلی (مثل /products یا /p/about) یا لینک https</span>
+          <input
+            v-model="block.props.ctaHref"
+            class="input"
+            dir="ltr"
+            maxlength="500"
+            placeholder="/products"
+          />
+          <span class="mt-1 block text-xs text-slate-500"
+            >مسیر داخلی (مثل /products یا /p/about) یا لینک https</span
+          >
         </label>
       </div>
     </template>
@@ -87,11 +116,8 @@ const emit = defineEmits<{ 'choose-image': []; 'clear-image': [] }>();
           <span class="label">دسته‌بندی</span>
           <select v-model="block.props.categorySlug" class="input">
             <option :value="null">— انتخاب کنید —</option>
-            <option
-              v-if="block.props.categorySlug && !categories.some((c) => c.slug === block.props.categorySlug)"
-              :value="block.props.categorySlug"
-            >
-              {{ block.props.categorySlug }} (پیدا نشد)
+            <option v-if="missingCategory" :value="missingCategory">
+              {{ missingCategory }} (پیدا نشد)
             </option>
             <option v-for="c in categories" :key="c.slug" :value="c.slug">{{ c.label }}</option>
           </select>
@@ -101,7 +127,14 @@ const emit = defineEmits<{ 'choose-image': []; 'clear-image': [] }>();
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="block">
           <span class="label">تعداد محصولات (۲ تا ۲۴)</span>
-          <input v-model.number="block.props.limit" type="number" min="2" max="24" class="input" dir="ltr" />
+          <input
+            v-model.number="block.props.limit"
+            type="number"
+            min="2"
+            max="24"
+            class="input"
+            dir="ltr"
+          />
         </label>
         <label class="block">
           <span class="label">تعداد ستون در دسکتاپ</span>
@@ -118,9 +151,17 @@ const emit = defineEmits<{ 'choose-image': []; 'clear-image': [] }>();
     <template v-else-if="block.type === 'rich-text'">
       <label class="block">
         <span class="label">متن</span>
-        <textarea v-model="block.props.content" rows="10" class="input font-mono text-[13px] leading-7" :maxlength="MAX_RICH_TEXT" />
+        <textarea
+          v-model="block.props.content"
+          rows="10"
+          class="input font-mono text-[13px] leading-7"
+          :maxlength="MAX_RICH_TEXT"
+        />
         <span class="mt-1 flex justify-between text-xs text-slate-500">
-          <span>«# عنوان» و «## زیرعنوان» · «- مورد» برای فهرست · پاراگراف‌ها را با یک خط خالی جدا کنید</span>
+          <span
+            >«# عنوان» و «## زیرعنوان» · «- مورد» برای فهرست · پاراگراف‌ها را با یک خط خالی جدا
+            کنید</span
+          >
           <span dir="ltr">{{ block.props.content.length }} / {{ MAX_RICH_TEXT }}</span>
         </span>
       </label>

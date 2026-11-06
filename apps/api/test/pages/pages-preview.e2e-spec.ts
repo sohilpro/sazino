@@ -74,7 +74,7 @@ describe('Page preview', () => {
 
     const res = await seller(editor).post('/secret/preview').expect(200);
     expect(res.body.url).toContain(A.tenant.subdomain);
-    expect(res.body.url).toContain('/p/secret?preview=');
+    expect(res.body.url).toContain('/preview/p/secret?preview=');
     const minutes = (new Date(res.body.expiresAt).getTime() - Date.now()) / 60_000;
     expect(minutes).toBeGreaterThan(29);
     expect(minutes).toBeLessThanOrEqual(30);
@@ -127,7 +127,7 @@ describe('Page preview', () => {
 
   it('previews the default home page too', async () => {
     const { body } = await seller(owner).post('/home/preview').expect(200);
-    expect(new URL(body.url).pathname).toBe('/');
+    expect(new URL(body.url).pathname).toBe('/preview');
 
     const res = await visit(A, 'home', tokenOf(body.url)).expect(200);
     expect(res.body).toMatchObject({ slug: 'home', preview: true });

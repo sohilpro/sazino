@@ -1,11 +1,25 @@
 import { z } from 'zod';
-
+import { parseCorsOrigins } from '../common/cors';
 // مقدار خالی در .env یعنی «تنظیم‌نشده»
 const optionalText = z.preprocess((v) => (v === '' ? undefined : v), z.string().optional());
 const optionalInt = z.preprocess(
   (v) => (v === '' ? undefined : v),
   z.coerce.number().int().positive().optional(),
 );
+
+const flag = (fallback: 'true' | 'false') =>
+  z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .enum(['true', 'false'])
+      .default(fallback)
+      .transform((v) => v === 'true'),
+  );
+const boundedInt = (fallback: number, max: number) =>
+  z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.coerce.number().int().min(1).max(max).default(fallback),
+  );
 
 export const envSchema = z
   .object({
@@ -71,6 +85,13 @@ export const envSchema = z
     INTERNAL_API_TOKEN: optionalText.refine((v) => v === undefined || v.length >= 32, {
       message: 'INTERNAL_API_TOKEN must be at least 32 characters',
     }),
+    // روز ۱۸: کش، سقف نرخ، توکن پروکسی
+    CACHE_ENABLED: flag('false'),
+    CACHE_TTL_SECONDS: boundedInt(60, 3600),
+    RATE_LIMIT_ENABLED: flag('false'),
+    RATE_LIMIT_IP_PER_MIN: boundedInt(300, 100_000),
+    RATE_LIMIT_TENANT_PER_MIN: boundedInt(6000, 10_000_000),
+    REQUIRE_PROXY_TOKEN: flag('false'),
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {
@@ -124,6 +145,33 @@ export const envSchema = z
         code: 'custom',
         path: ['INTERNAL_API_TOKEN'],
         message: 'INTERNAL_API_TOKEN is required in production (Caddy on-demand TLS uses it)',
+      });
+    }
+    try {
+      parseCorsOrigins(env.CORS_ORIGINS, { production: env.NODE_ENV === 'production' });
+    } catch (e) {
+      ctx.addIssue({ code: 'custom', path: ['CORS_ORIGINS'], message: (e as Error).message });
+    }
+
+    if (env.REQUIRE_PROXY_TOKEN && !env.INTERNAL_API_TOKEN) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['INTERNAL_API_TOKEN'],
+        message: 'INTERNAL_API_TOKEN is required when REQUIRE_PROXY_TOKEN=true',
+      });
+    }
+    if (env.NODE_ENV === 'production' && !env.REQUIRE_PROXY_TOKEN) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['REQUIRE_PROXY_TOKEN'],
+        message: 'REQUIRE_PROXY_TOKEN must be true in production',
+      });
+    }
+    if (env.NODE_ENV === 'production' && !env.RATE_LIMIT_ENABLED) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RATE_LIMIT_ENABLED'],
+        message: 'RATE_LIMIT_ENABLED must be true in production',
       });
     }
   });

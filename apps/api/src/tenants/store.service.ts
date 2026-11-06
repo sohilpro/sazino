@@ -4,6 +4,7 @@ import { StorageService } from '../storage/storage.service';
 import { TenantContext } from './tenant-context';
 import { InjectTenantDb, type TenantDb } from './tenant-db';
 import { parseStoreSettings } from './store-settings';
+import { StoreUrlService } from './store-url.service';
 
 @Injectable()
 export class StoreService {
@@ -11,6 +12,7 @@ export class StoreService {
     @InjectTenantDb() private readonly db: TenantDb,
     private readonly ctx: TenantContext,
     private readonly storage: StorageService,
+    private readonly storeUrl: StoreUrlService,
   ) {}
 
   async info(): Promise<StoreInfo> {
@@ -41,6 +43,7 @@ export class StoreService {
       description: settings.description,
       logoUrl,
       theme: { primaryColor: settings.primaryColor, font: settings.font },
+      canonicalUrl: await this.storeUrl.forCurrentTenant(),
     };
   }
 }

@@ -21,6 +21,7 @@ import type { Env } from '../config/env';
 import { buildStoreUrl } from '../tenants/store-url';
 import { PreviewTokenService } from './preview-token.service';
 import { StoreUrlService } from '../tenants/store-url.service';
+import { buildPreviewPath } from './preview-url';
 
 const toJson = (blocks: StoredBlock[]) => blocks as unknown as Prisma.InputJsonValue;
 
@@ -114,9 +115,8 @@ export class PagesService {
     if (!page && slug !== HOME_SLUG) throw new NotFoundException('ابتدا صفحه را ذخیره کنید');
 
     const { token, expiresAt } = this.tokens.sign(tenantId, slug);
-    const path = slug === HOME_SLUG ? '/' : `/p/${slug}`;
     return {
-      url: `${await this.storeUrl.forCurrentTenant()}${path}?preview=${token}`,
+      url: `${await this.storeUrl.forCurrentTenant()}${buildPreviewPath(slug, token)}`,
       expiresAt: expiresAt.toISOString(),
     };
   }

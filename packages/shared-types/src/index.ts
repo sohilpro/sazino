@@ -76,6 +76,7 @@ export interface StoreInfo {
   description: string | null;
   logoUrl: string | null;
   theme: StoreTheme;
+  canonicalUrl: string;
 }
 
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -588,4 +589,16 @@ export interface AdminTenantDetailDto extends AdminTenantSummaryDto {
 export interface AdminStatsDto {
   tenants: Record<TenantStatus, number>;
   byPlan: Record<TenantPlan, number>;
+}
+
+export interface SitemapUrlEntry {
+  /** مسیر خام (بدون percent-encoding) مثل /p/about */
+  path: string;
+  lastModified: string | null;
+}
+
+export interface SitemapUrlsDto {
+  urls: SitemapUrlEntry[];
+  /** true یعنی سقف ۴۵۰۰۰ تا رسید و بقیه حذف شد */
+  truncated: boolean;
 }

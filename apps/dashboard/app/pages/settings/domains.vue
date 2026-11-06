@@ -128,10 +128,6 @@ async function copy(text: string) {
           {{ data.limit === null ? 'نامحدود' : formatNumber(data.limit) }} دامنه. برای دامنه‌ی اصلی
           و «www» هر کدام را جداگانه اضافه کنید.
         </p>
-        <p class="w-full text-xs text-slate-500">
-          {{ formatNumber(data.items.length) }} از {{ formatNumber(data.limit) }} دامنه. برای
-          دامنه‌ی اصلی و «www» هر کدام را جداگانه اضافه کنید.
-        </p>
       </form>
 
       <p

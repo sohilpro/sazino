@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublicPageDto } from '@myapp/shared-types';
 
+definePageMeta({ alias: ['/preview'] });
 const store = useStore();
 const api = useStorefrontApi();
 const { token } = usePreview();

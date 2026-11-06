@@ -78,7 +78,7 @@ describe('Store settings (theme)', () => {
       subdomain: A.tenant.subdomain,
       description: null,
       primaryColor: '#4f46e5',
-      font: 'Vazirmatn FD',
+      font: 'vazirmatn',
       logo: null,
     });
     expect(res.body.storeUrl).toContain(A.tenant.subdomain);
@@ -150,15 +150,18 @@ describe('Store settings (theme)', () => {
 
   it('validates every field', async () => {
     const foreign = await createMedia(B);
+    const before = (await seller(owner).get().expect(200)).body;
+
     for (const body of [
       { primaryColor: '#fff' },
       { primaryColor: 'red' },
       { primaryColor: 'red;} body{display:none' },
       { font: 'comic-sans' },
       { font: 'noto-naskh-arabic' },
-      { font: 'vazirmatn' }, // فقط کلید پذیرفته می‌شود، نه نام CSS
-      { font: 'Vazirmatn FD; } body { display:none' },
+      { font: 'Vazirmatn FD' }, // نام CSS پذیرفته نمی‌شود؛ فقط کلید فهرست مجاز
+      { font: 'vazirmatn; } body { display:none' },
       { name: 'ا' },
+      { name: '   ' },
       { name: 'x'.repeat(61) },
       { description: 'x'.repeat(501) },
       { logoMediaId: 'not-a-uuid' },
@@ -166,8 +169,13 @@ describe('Store settings (theme)', () => {
       { logoMediaId: foreign.id },
       { plan: 'PRO' },
     ]) {
-      await seller(owner).put(body).expect(400);
+      const res = await seller(owner).put(body);
+      expect(res.status, `body: ${JSON.stringify(body)}`).toBe(400);
     }
+
+    // هیچ درخواست نامعتبری نباید چیزی ذخیره کرده باشد
+    const after = (await seller(owner).get().expect(200)).body;
+    expect(after).toEqual(before);
   });
 
   it('lets only owners and admins change it', async () => {

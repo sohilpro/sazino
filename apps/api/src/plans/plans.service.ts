@@ -60,7 +60,7 @@ export class PlansService implements OnModuleInit {
         maxProducts: dto.maxProducts,
         maxDomains: dto.maxDomains,
         maxMediaMb: dto.maxMediaMb,
-        priceMonthly: dto.priceMonthly,
+        priceMonthly: dto.priceMonthly ?? undefined
       },
     });
     return toDto(row);

@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable, NotFoundException, type PipeTransform } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  type PipeTransform,
+} from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 import type { TenantPlan } from '@myapp/shared-types';
 import { trim } from '../common/transforms';
 import { isPlanKey } from './plan-defaults';
@@ -32,10 +37,9 @@ export class UpdatePlanDto {
   @Max(100_000_000)
   maxMediaMb?: number | null;
 
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsInt()
   @Min(0)
-  @Max(2_000_000_000)
   priceMonthly?: number;
 }
 

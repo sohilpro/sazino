@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PublicPageDto } from '@myapp/shared-types';
 
+definePageMeta({ alias: ['/preview/p/:slug'] });
 const route = useRoute();
 const api = useStorefrontApi();
 const siteUrl = useSiteUrl();
