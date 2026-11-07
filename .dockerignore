@@ -1,0 +1,15 @@
+**/node_modules
+**/.nuxt
+**/.output
+**/.turbo
+**/dist
+**/coverage
+**/*.log
+**/*.tsbuildinfo
+.git
+.github
+.env
+.env.*
+apps/api/src/generated
+apps/*/test
+*.md

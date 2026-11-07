@@ -1,0 +1,234 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'تگ ایمیج برای دیپلوی (SHA کامل کامیت)؛ برای rollback'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: myapp
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d myapp"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/myapp
+      REDIS_URL: redis://localhost:6379
+      MINIO_ENDPOINT: http://localhost:9000
+      MINIO_BUCKET: myapp-media
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin123
+      MEDIA_PUBLIC_URL: http://localhost:9000/myapp-media
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      PLATFORM_DOMAIN: localhost
+      TRUST_PROXY_HOPS: '1'
+      DOMAIN_REVALIDATE: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Test-only secrets (random per run)
+        run: |
+          echo "JWT_ACCESS_SECRET=$(openssl rand -hex 48)" >> "$GITHUB_ENV"
+          echo "ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "INTERNAL_API_TOKEN=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin123 \
+            chainguard/minio:latest server /data
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:9000/minio/health/live && exit 0
+            sleep 2
+          done
+          docker logs minio
+          exit 1
+
+      - run: npm ci
+
+      - name: Validate production compose file
+        run: docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
+
+      - name: Apply migrations
+        run: npm run db:deploy -w apps/api
+
+      - run: npm run typecheck
+      - run: npm test
+
+  # برای اولین اجرا غیرمسدودکننده است؛ بعد از سبزشدن continue-on-error را بردار
+  lint:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  images:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { name: api, context: ., file: apps/api/Dockerfile, target: runtime, args: '' }
+          - { name: migrate, context: ., file: apps/api/Dockerfile, target: migrate, args: '' }
+          - {
+              name: storefront,
+              context: .,
+              file: infra/docker/nuxt.Dockerfile,
+              target: runtime,
+              args: "APP=storefront\nPORT=3000",
+            }
+          - {
+              name: dashboard,
+              context: .,
+              file: infra/docker/nuxt.Dockerfile,
+              target: runtime,
+              args: "APP=dashboard\nPORT=3001",
+            }
+          - {
+              name: caddy,
+              context: infra/caddy,
+              file: infra/caddy/Dockerfile,
+              target: '',
+              args: '',
+            }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase owner
+        run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          build-args: ${{ matrix.args }}
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/sazino-${{ matrix.name }}:${{ github.sha }}
+            ghcr.io/${{ env.OWNER }}/sazino-${{ matrix.name }}:latest
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    needs: images
+    if: ${{ always() && (needs.images.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    env:
+      TAG: ${{ github.event.inputs.image_tag || github.sha }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/sazino' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Prepare SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Upload compose and Caddyfile
+        env:
+          SSH_TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+        run: |
+          SSH="ssh -i ~/.ssh/deploy_key"
+          $SSH "$SSH_TARGET" "mkdir -p '$DEPLOY_PATH/infra/caddy'"
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml "$SSH_TARGET:$DEPLOY_PATH/docker-compose.prod.yml"
+          scp -i ~/.ssh/deploy_key infra/caddy/Caddyfile "$SSH_TARGET:$DEPLOY_PATH/infra/caddy/Caddyfile"
+
+      - name: Pull and restart
+        env:
+          SSH_TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "$SSH_TARGET" "DEPLOY_PATH='$DEPLOY_PATH' TAG='$TAG' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          # تگ را در env ثبت می‌کنیم تا دستورهای دستی بعدی هم همین نسخه را ببینند
+          if grep -q '^IMAGE_TAG=' .env.production; then
+            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/" .env.production
+          else
+            echo "IMAGE_TAG=$TAG" >> .env.production
+          fi
+          COMPOSE="docker compose --env-file .env.production -f docker-compose.prod.yml"
+          $COMPOSE pull
+          $COMPOSE up -d --remove-orphans
+          docker image prune -f
+          docker image prune -af --filter "until=168h"
+          REMOTE
+
+      - name: Health check
+        env:
+          API_HEALTH_URL: ${{ vars.API_HEALTH_URL }}
+          SSH_TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+        run: |
+          if curl -fsS --retry 12 --retry-delay 10 --retry-all-errors "$API_HEALTH_URL" >/dev/null; then
+            echo "API is healthy"
+          else
+            echo "::error::health check failed; showing logs"
+            ssh -i ~/.ssh/deploy_key "$SSH_TARGET" \
+              "cd '$DEPLOY_PATH' && docker compose --env-file .env.production -f docker-compose.prod.yml logs --tail 80 migrate api worker"
+            exit 1
+          fi
+
+      - name: Smoke test
+        env:
+          SMOKE_DOMAIN: ${{ vars.SMOKE_DOMAIN }}
+          SMOKE_TENANT: ${{ vars.SMOKE_TENANT }}
+        run: bash infra/scripts/smoke.sh "$SMOKE_DOMAIN" "$SMOKE_TENANT"

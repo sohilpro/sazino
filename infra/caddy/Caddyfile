@@ -1,33 +1,83 @@
 {
 	email {$ACME_EMAIL}
 
-	# قبل از صدور هر گواهی تازه، Caddy از API می‌پرسد: ۲۰۰ = مجاز، غیر از آن = ردّ
+	# قبل از صدور هر گواهی تازه برای دامنه‌های اختصاصی، Caddy از API می‌پرسد: ۲۰۰ = مجاز
+	# توجه: acme_dns سراسری نگذار؛ DNS مشتری‌ها در حساب ما نیست و صدور گواهی‌شان خراب می‌شود
 	on_demand_tls {
 		ask http://api:4000/api/internal/domains/check?token={$INTERNAL_API_TOKEN}
 	}
 }
 
-# پنل فروشنده و API پلتفرم: گواهی عادی (on-demand نیست)
+(hsts) {
+	header Strict-Transport-Security "max-age=15552000"
+}
+
+# پنل ادمین فقط از IPهای مجاز (فاصله‌جدا؛ CIDR هم می‌شود). بقیه ۴۰۴ می‌گیرند.
+(admin_guard) {
+	@admin_blocked {
+		path /admin /admin/* /api/admin /api/admin/*
+		not remote_ip {$ADMIN_ALLOWED_IPS:127.0.0.1}
+	}
+	respond @admin_blocked 404
+}
+
+# پنل فروشنده
 app.{$PLATFORM_DOMAIN} {
+	import hsts
+	import admin_guard
 	encode zstd gzip
 	reverse_proxy dashboard:3001
 }
 
+# API پلتفرم
 api.{$PLATFORM_DOMAIN} {
+	import hsts
+	import admin_guard
 	encode zstd gzip
 	# مسیرهای داخلی هرگز از بیرون در دسترس نیستند
 	@internal path /api/internal/*
 	respond @internal 404
-	reverse_proxy api:4000
+	reverse_proxy api:4000 {
+		# هویت فروشگاه را فقط ویترین (با توکن) تعیین می‌کند، نه بیرون
+		header_up -X-Tenant-Host
+		header_up -X-Internal-Token
+	}
 }
 
-# ویترین: ساب‌دامین‌های فروشگاه‌ها و دامنه‌های اختصاصی.
-# گواهی در اولین بازدید و فقط با تأیید API صادر می‌شود.
+# تصاویر: فقط خواندن اشیای باکت (path-style)، با کش بلندمدت (مسیرها بر پایه‌ی شناسه‌اند)
+media.{$PLATFORM_DOMAIN} {
+	import hsts
+	encode zstd gzip
+	@object {
+		method GET HEAD
+		path /{$MINIO_BUCKET:myapp-media}/*
+	}
+	handle @object {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy minio:9000
+	}
+	handle {
+		respond 404
+	}
+}
+
+# ویترین ساب‌دامین‌ها: یک گواهی wildcard با DNS-01 (بدون سقف Let's Encrypt برای هر زیردامنه)
+# رکورد DNS باید «DNS only» باشد، نه پروکسی Cloudflare
+*.{$PLATFORM_DOMAIN} {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	import hsts
+	encode zstd gzip
+	reverse_proxy storefront:3000
+}
+
+# دامنه‌های اختصاصی مشتری‌ها: گواهی در اولین بازدید و فقط با تأیید API صادر می‌شود
 https:// {
 	tls {
 		on_demand
 	}
 	encode zstd gzip
-	# Host اصلی بازدیدکننده بدون تغییر به Nuxt می‌رسد (رفتار پیش‌فرض Caddy)
+	# Host اصلی بازدیدکننده بدون تغییر به Nuxt می‌رسد
 	reverse_proxy storefront:3000
 }
