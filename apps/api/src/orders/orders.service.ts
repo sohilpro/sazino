@@ -33,6 +33,7 @@ import {
 import { computeTotals, type ShippingRule } from './pricing';
 import { ShippingService } from './shipping.service';
 import { StorefrontCacheService } from '../cache/storefront-cache.service';
+import { lockVariantsForShare } from './variant-lock';
 
 const MAX_INT = 2_147_483_647;
 
@@ -116,6 +117,12 @@ export class OrdersService {
     const expiresAt = new Date(Date.now() + ORDER_PAYMENT_WINDOW_MINUTES * 60_000);
 
     await this.db.$transaction(async (tx) => {
+      // ۰) قفل قیمت تنوع‌ها (هم‌ترتیب با ویرایش فروشنده: اول تنوع، بعد موجودی)
+      await lockVariantsForShare(
+        tx,
+        tenantId,
+        cart.items.map((i) => i.variantId),
+      );
       // ۱) نگه‌داشتن موجودی (شرطی و اتمیک)
       for (const item of cart.items) {
         const reserved = await tx.inventory.updateMany({
@@ -130,7 +137,7 @@ export class OrdersService {
         }
       }
 
-      // ۲) قیمت‌ها بین خواندن سبد و همین لحظه عوض نشده باشند
+      // ۲) قیمت‌ها بین خواندن سبد و همین لحظه عوض نشده باشند (قفل بالا تا commit نگهشان می‌دارد)
       const current = await tx.variant.findMany({
         where: { id: { in: cart.items.map((i) => i.variantId) } },
         select: { id: true, price: true },

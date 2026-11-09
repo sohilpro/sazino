@@ -5,6 +5,7 @@ import { Redis } from 'ioredis';
 import type { HealthResponse, ServiceCheck } from '@myapp/shared-types';
 import type { Env } from '../config/env';
 import { PG_POOL } from '../database/database.module';
+import { WORKER_HEARTBEAT_KEY, WORKER_STALE_MS } from '../jobs/worker-heartbeat.service';
 import { REDIS_CLIENT } from '../redis/redis.module';
 
 @Injectable()
@@ -16,20 +17,30 @@ export class HealthService {
   ) {}
 
   async check(): Promise<HealthResponse> {
-    const [database, redis, storage] = await Promise.all([
+    const requireWorker = this.config.get('HEALTH_REQUIRE_WORKER', { infer: true });
+    const [database, redis, storage, worker] = await Promise.all([
       this.probe(() => this.pool.query('SELECT 1')),
       this.probe(() => this.redis.ping()),
       this.probe(() => this.pingStorage()),
+      requireWorker ? this.probe(() => this.checkWorker()) : Promise.resolve(undefined),
     ]);
 
-    const allUp = [database, redis, storage].every((c) => c.status === 'up');
+    const all = [database, redis, storage, worker].filter((c): c is ServiceCheck => c !== undefined);
 
     return {
-      status: allUp ? 'ok' : 'degraded',
+      status: all.every((c) => c.status === 'up') ? 'ok' : 'degraded',
+      version: this.config.get('GIT_SHA', { infer: true }) ?? 'dev',
       timestamp: new Date().toISOString(),
       uptime: Math.round(process.uptime()),
-      checks: { database, redis, storage },
+      checks: { database, redis, storage, ...(worker ? { worker } : {}) },
     };
+  }
+
+  private async checkWorker() {
+    const raw = await this.redis.get(WORKER_HEARTBEAT_KEY);
+    if (!raw || Date.now() - Number(raw) > WORKER_STALE_MS) {
+      throw new Error('worker heartbeat is stale');
+    }
   }
 
   private async pingStorage() {

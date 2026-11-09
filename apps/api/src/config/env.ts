@@ -92,6 +92,14 @@ export const envSchema = z
     RATE_LIMIT_IP_PER_MIN: boundedInt(300, 100_000),
     RATE_LIMIT_TENANT_PER_MIN: boundedInt(6000, 10_000_000),
     REQUIRE_PROXY_TOKEN: flag('false'),
+
+    // روز ۲۰: لاگ، Sentry، سلامت
+    LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    SENTRY_DSN: optionalText.refine((v) => v === undefined || /^https?:\/\/\S+$/.test(v), {
+      message: 'SENTRY_DSN must be a URL',
+    }),
+    GIT_SHA: optionalText,
+    HEALTH_REQUIRE_WORKER: flag('false'),
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {

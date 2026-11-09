@@ -47,6 +47,9 @@ x-api-env: &api-env
   RATE_LIMIT_IP_PER_MIN: ${RATE_LIMIT_IP_PER_MIN:-300}
   RATE_LIMIT_TENANT_PER_MIN: ${RATE_LIMIT_TENANT_PER_MIN:-6000}
   REQUIRE_PROXY_TOKEN: 'true'
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  GIT_SHA: ${IMAGE_TAG:-dev}
 
 services:
   postgres:
@@ -125,6 +128,9 @@ services:
     environment:
       <<: *api-env
       JOBS_ENABLED: 'false'
+      NUXT_SENTRY_DSN: ${SENTRY_DSN_STOREFRONT:-}
+      NUXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_STOREFRONT:-}
+      GIT_SHA: ${IMAGE_TAG:-dev}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -188,6 +194,7 @@ services:
       NUXT_PUBLIC_API_BASE: https://api.${PLATFORM_DOMAIN}/api
       NUXT_PUBLIC_PLATFORM_DOMAIN: ${PLATFORM_DOMAIN}
       NUXT_MEDIA_ORIGIN: https://media.${PLATFORM_DOMAIN}
+      NUXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_DASHBOARD:-}
 
   caddy:
     image: ${IMAGE_PREFIX:-sazino}-caddy:${IMAGE_TAG:-latest}
@@ -215,6 +222,40 @@ services:
       - storefront
       - dashboard
       - minio
+  backup:
+    image: ${IMAGE_PREFIX:-sazino}-backup:${IMAGE_TAG:-latest}
+    build:
+      context: infra/backup
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      TZ: UTC
+      PGPASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+      BACKUP_DIR: /backups
+      BACKUP_MEDIA: 'true'
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    volumes:
+      - ${BACKUP_HOST_DIR:-./backups}:/backups
+      - minio_data:/media-src:ro
+      # فقط وقتی BACKUP_REMOTE دارید: id_ed25519 و known_hosts
+      - ./backup-ssh:/etc/backup:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'test -f /backups/.last-backup-ok && test $$(( $$(date +%s) - $$(cat /backups/.last-backup-ok) )) -lt 93600',
+        ]
+      interval: 10m
+      timeout: 10s
+      retries: 1
+      start_period: 15m
 
 volumes:
   postgres_data:

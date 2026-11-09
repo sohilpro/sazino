@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     public: {
       apiBase: 'http://localhost:4000/api',
       platformDomain: 'localhost',
+      sentryDsn: '',
     },
   },
   app: {

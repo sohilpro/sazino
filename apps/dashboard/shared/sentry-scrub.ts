@@ -1,0 +1,51 @@
+export interface SentryEventLike {
+  request?: { url?: string; method?: string; headers?: Record<string, unknown> };
+  user?: { id?: unknown };
+  message?: string;
+  exception?: { values?: Array<{ value?: string }> };
+  breadcrumbs?: Array<{ message?: string; data?: unknown }>;
+  extra?: unknown;
+}
+
+const KEEP_HEADERS = ['user-agent', 'content-type', 'accept', 'x-request-id'];
+const PHONE = /(?<!\d)09\d{9}(?!\d)/g;
+const mask = (text: string) => text.replace(PHONE, (m) => `${m.slice(0, 4)}***${m.slice(-4)}`);
+
+/** کوکی، Authorization، query، بدن، IP و ایمیل حذف و موبایل‌ها ماسک می‌شوند */
+export function scrubSentryEvent<T extends SentryEventLike>(event: T): T {
+  const out: SentryEventLike = { ...event };
+
+  if (event.request) {
+    const headers = Object.fromEntries(
+      Object.entries(event.request.headers ?? {}).filter(([key]) =>
+        KEEP_HEADERS.includes(key.toLowerCase()),
+      ),
+    );
+    out.request = {
+      method: event.request.method,
+      url: event.request.url?.split('?')[0],
+      headers,
+    };
+  }
+
+  out.user = event.user?.id !== undefined ? { id: event.user.id } : undefined;
+  out.extra = undefined;
+  if (typeof event.message === 'string') out.message = mask(event.message);
+  if (event.exception?.values) {
+    out.exception = {
+      ...event.exception,
+      values: event.exception.values.map((v) => ({
+        ...v,
+        value: typeof v.value === 'string' ? mask(v.value) : v.value,
+      })),
+    };
+  }
+  if (event.breadcrumbs) {
+    out.breadcrumbs = event.breadcrumbs.map((b) => ({
+      ...b,
+      message: typeof b.message === 'string' ? mask(b.message) : b.message,
+      data: undefined,
+    }));
+  }
+  return out as T;
+}

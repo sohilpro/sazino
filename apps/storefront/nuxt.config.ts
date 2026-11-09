@@ -18,6 +18,10 @@ export default defineNuxtConfig({
     internalApiToken: '', // NUXT_INTERNAL_API_TOKEN، برابر INTERNAL_API_TOKEN در API
     canonicalRedirect: false, // NUXT_CANONICAL_REDIRECT
     mediaOrigin: '', // NUXT_MEDIA_ORIGIN
+    sentryDsn: '', // NUXT_SENTRY_DSN (سمت سرور)
+    public: {
+      sentryDsn: '', // NUXT_PUBLIC_SENTRY_DSN (مرورگر)
+    },
   },
   routeRules: {
     // کش HTML فقط در پروداکشن؛ لیست و جستجوی /products کش نمی‌شود

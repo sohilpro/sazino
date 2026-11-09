@@ -8,6 +8,7 @@ import { MaintenanceProcessor } from './maintenance.processor';
 import { MaintenanceScheduler } from './maintenance.scheduler';
 import { MaintenanceService } from './maintenance.service';
 import { DomainsModule } from '../domains/domains.module';
+import { WorkerHeartbeatService } from '../jobs/worker-heartbeat.service';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { DomainsModule } from '../domains/domains.module';
   ],
   providers: [
     MaintenanceService,
-    ...(JOBS_ENABLED ? [MaintenanceProcessor, MaintenanceScheduler] : []),
+    ...(JOBS_ENABLED ? [MaintenanceProcessor, MaintenanceScheduler, WorkerHeartbeatService] : []),
   ],
   exports: [MaintenanceService],
 })

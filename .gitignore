@@ -13,3 +13,7 @@ apps/api/src/generated
 
 *.tsbuildinfo
 !.env.production.example
+
+apps/e2e/.logs
+apps/e2e/test-results
+apps/e2e/playwright-report

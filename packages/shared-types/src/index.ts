@@ -16,12 +16,16 @@ export interface ServiceCheck {
 
 export interface HealthResponse {
   status: 'ok' | 'degraded';
+  /** SHA کامیت یا 'dev' */
+  version: string;
   timestamp: string;
   uptime: number;
   checks: {
     database: ServiceCheck;
     redis: ServiceCheck;
     storage: ServiceCheck;
+    /** فقط وقتی HEALTH_REQUIRE_WORKER=true است */
+    worker?: ServiceCheck;
   };
 }
 

@@ -7,7 +7,7 @@ export default defineEventHandler((event) => {
     event,
     securityHeaders({
       mediaOrigin: String(config.mediaOrigin ?? ''),
-      connectOrigins: [String(config.public.apiBase ?? '')],
+      connectOrigins: [String(config.public.apiBase ?? ''), String(config.public.sentryDsn ?? '')],
       allowBlobImages: true,
     }),
   );
