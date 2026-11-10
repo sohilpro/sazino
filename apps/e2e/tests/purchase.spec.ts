@@ -1,20 +1,31 @@
 import { expect, test } from '@playwright/test';
 import { randomPhone, readOtp } from './helpers';
 
-const PRODUCT_TITLE = 'پاوربانک ۲۰۰۰۰';
-const PRODUCT_PATH = `/products/${encodeURIComponent('پاوربانک-20000')}`;
+// محصول فعال و تک‌تنوعه‌ی seed (پاوربانک seed پیش‌نویس است و در ویترین دیده نمی‌شود)
+const PRODUCT_TITLE = 'هدفون بلوتوثی';
+const PRODUCT_PATH = `/products/${encodeURIComponent('هدفون-بلوتوثی')}`;
 
 test('a new customer buys a product and pays through the gateway', async ({ page }) => {
   const phone = randomPhone();
 
   await test.step('add the product to the cart', async () => {
-    // کلیک قبل از hydration اثری ندارد؛ تا دیده‌شدن محصول در سبد تکرار می‌کنیم
+    await page.goto(PRODUCT_PATH);
+
+    // کلیک قبل از hydration اثری ندارد؛ همان صفحه را بدون reload تا ارسال درخواست سبد تکرار می‌کنیم
     await expect(async () => {
-      await page.goto(PRODUCT_PATH);
-      await page.getByRole('button', { name: 'افزودن به سبد خرید' }).click();
-      await page.goto('/cart');
-      await expect(page.getByText(PRODUCT_TITLE).first()).toBeVisible({ timeout: 3_000 });
-    }).toPass({ timeout: 45_000 });
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/api/storefront/cart/items') && r.request().method() === 'POST',
+          { timeout: 4_000 },
+        ),
+        page.getByRole('button', { name: 'افزودن به سبد خرید' }).click(),
+      ]);
+      expect(response.ok(), `cart POST failed: ${response.status()} ${await response.text()}`).toBe(true);
+    }).toPass({ timeout: 90_000, intervals: [500, 1_000, 2_000] });
+
+    // سبد سمت مرورگر بعد از hydration بارگذاری می‌شود
+    await page.goto('/cart');
+    await expect(page.getByText(PRODUCT_TITLE).first()).toBeVisible({ timeout: 30_000 });
   });
 
   await test.step('sign in with an SMS code', async () => {

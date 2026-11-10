@@ -21,7 +21,7 @@
     "db:migrate": "npm run db:migrate -w apps/api --",
     "db:seed": "npm run db:seed -w apps/api",
     "db:studio": "npm run db:studio -w apps/api",
-    "test": "turbo run test"
+    "test": "turbo run test --concurrency=1"
   },
   "packageManager": "npm@11.17.0",
   "devDependencies": {

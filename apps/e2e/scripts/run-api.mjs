@@ -11,9 +11,13 @@ const file = createWriteStream(resolve(logDir, 'api.log'), { flags: 'w' });
 
 // در CI قبلاً build شده؛ محلی با watch
 const script = process.env.CI ? 'start' : 'dev';
-const child = spawn('npm', ['run', script, '-w', 'apps/api'], {
+
+// یک رشته‌ی فرمان (نه آرایه) تا هشدار DEP0190 نیاید؛ shell در ویندوز برای فایل npm.cmd لازم است
+const child = spawn(`npm run ${script} -w apps/api`, {
   cwd: root,
-  shell: process.platform === 'win32',
+  shell: true,
+  // در یونیکس گروه پروسه‌ی جدا می‌گیرد تا بتوانیم کل درخت (npm + node) را ببندیم
+  detached: process.platform !== 'win32',
   env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0', NODE_ENV: 'development' },
 });
 
@@ -27,7 +31,11 @@ for (const stream of [child.stdout, child.stderr]) {
 function stop() {
   if (process.platform === 'win32') {
     spawn('taskkill', ['/pid', String(child.pid), '/T', '/F']);
-  } else {
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGTERM');
+  } catch {
     child.kill('SIGTERM');
   }
 }
