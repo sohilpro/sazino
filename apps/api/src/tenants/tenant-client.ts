@@ -2,6 +2,7 @@
 import type { PrismaClient } from '../generated/prisma/client';
 import type { TenantContext } from './tenant-context';
 import { classifyModel, TenantScopeError } from './tenant-scope';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 type Args = Record<string, any>;
 
@@ -138,8 +139,25 @@ function scopeRoot(model: string, operation: string, args: Args | undefined, ten
   }
 }
 
-export function createTenantClient(base: PrismaClient, ctx: TenantContext) {
-  return base.$extends({
+export interface TenantClientOptions {
+  /**
+   * true: کلاینت پایه با نقش بدون BYPASSRLS وصل است و باید در هر تراکنش app.tenant_id گذاشته شود
+   * تا policyهای Row Level Security ردیف‌های همین tenant را نشان بدهند.
+   */
+  rls?: boolean;
+}
+
+/** داخل تراکنش تعاملی tenant، app.tenant_id یک‌بار در ابتدای تراکنش گذاشته شده است */
+const inTenantTransaction = new AsyncLocalStorage<true>();
+
+export function createTenantClient(
+  base: PrismaClient,
+  ctx: TenantContext,
+  options: TenantClientOptions = {},
+) {
+  const rls = options.rls ?? false;
+
+  const extended = base.$extends({
     name: 'tenant-isolation',
     query: {
       $allModels: {
@@ -158,9 +176,45 @@ export function createTenantClient(base: PrismaClient, ctx: TenantContext) {
             );
           }
 
-          return query(scoped as typeof args);
+          // داخل تراکنش تعاملی app.tenant_id از قبل گذاشته شده است
+          if (!rls || inTenantTransaction.getStore()) return query(scoped as typeof args);
+
+          // خارج از تراکنش: «تنظیم tenant + کوئری» در یک تراکنش تک‌مرحله‌ای (set_config با is_local=true؛
+          // مقدار با پایان تراکنش از بین می‌رود و روی اتصال مشترک pool نمی‌ماند)
+          const [, result] = await base.$transaction([
+            base.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`,
+            query(scoped as typeof args) as never,
+          ]);
+          return result;
         },
       },
     },
   });
+
+  if (!rls) return extended;
+
+  // تراکنش‌های تعاملی: اولین دستور set_config است و بقیه‌ی کوئری‌ها دیگر تکرارش نمی‌کنند
+  return new Proxy(extended, {
+    get(target, prop) {
+      if (prop === '$transaction') {
+        return (arg: unknown, txOptions?: unknown) => {
+          if (typeof arg !== 'function') {
+            return (target.$transaction as (...a: unknown[]) => unknown)(arg, txOptions);
+          }
+          const tenantId = ctx.require();
+          return (target.$transaction as (...a: unknown[]) => unknown)(
+            async (tx: {
+              $executeRaw: (s: TemplateStringsArray, ...v: unknown[]) => Promise<unknown>;
+            }) => {
+              await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+              return inTenantTransaction.run(true, () => (arg as (t: unknown) => unknown)(tx));
+            },
+            txOptions,
+          );
+        };
+      }
+      const value = Reflect.get(target, prop, target) as unknown;
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  }) as typeof extended;
 }

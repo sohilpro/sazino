@@ -48,6 +48,7 @@ jobs:
       S3_SECRET_KEY: minioadmin123
       MEDIA_PUBLIC_URL: http://localhost:9000/myapp-media
       CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      TENANT_DATABASE_URL: postgresql://myapp_rls:e2e-password@localhost:5432/myapp
       PLATFORM_DOMAIN: localhost
       TRUST_PROXY_HOPS: '1'
       DOMAIN_REVALIDATE: 'false'
@@ -120,6 +121,7 @@ jobs:
       S3_SECRET_KEY: minioadmin123
       MEDIA_PUBLIC_URL: http://localhost:9000/myapp-media
       CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      TENANT_DATABASE_URL: postgresql://myapp_rls:e2e-password@localhost:5432/myapp
       PLATFORM_DOMAIN: localhost
       TRUST_PROXY_HOPS: '1'
       DOMAIN_REVALIDATE: 'false'
@@ -158,6 +160,7 @@ jobs:
       - run: npm run build -w @myapp/shared-types
       - run: npm run build -w @myapp/api
       - run: npm run test:e2e -w @myapp/e2e
+      - run: npm run db:tenant-role -w apps/api
 
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -307,6 +310,7 @@ jobs:
           $COMPOSE pull
           if $COMPOSE ps --status running --services | grep -qx postgres; then
             $COMPOSE run --rm --no-deps --entrypoint /usr/local/bin/backup.sh backup
+            $COMPOSE run --rm migrate npm run db:tenant-role -w apps/api
           fi
           $COMPOSE up -d --remove-orphans
           docker image prune -f

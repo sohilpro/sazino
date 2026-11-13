@@ -41,11 +41,18 @@ const SYSTEM_CLIENT_ALLOWED = [
 ];
 
 /** SQL خام فیلتر خودکار tenant را دور می‌زند؛ هر فایل باید tenant_id را صریح بنویسد */
-const RAW_SQL_ALLOWED = ['orders/variant-lock.ts'];
+const RAW_SQL_ALLOWED = [
+  'orders/variant-lock.ts',
+  // set_config('app.tenant_id', ...) برای Row Level Security
+  'tenants/tenant-client.ts',
+];
 
 describe('system client and raw SQL usage', () => {
   it('only the reviewed files use PrismaService', () => {
-    const users = sources.filter((s) => /\bPrismaService\b/.test(s.text)).map((s) => s.path).sort();
+    const users = sources
+      .filter((s) => /\bPrismaService\b/.test(s.text))
+      .map((s) => s.path)
+      .sort();
     expect(users).toEqual([...SYSTEM_CLIENT_ALLOWED].sort());
   });
 
@@ -64,9 +71,7 @@ describe('system client and raw SQL usage', () => {
   });
 
   it('no feature service imports the tenant resolver internals or builds its own Prisma client', () => {
-    const offenders = sources
-      .filter((s) => /new PrismaClient\(/.test(s.text))
-      .map((s) => s.path);
+    const offenders = sources.filter((s) => /new PrismaClient\(/.test(s.text)).map((s) => s.path);
     expect(offenders).toEqual([]);
   });
 });

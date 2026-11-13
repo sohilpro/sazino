@@ -50,6 +50,7 @@ x-api-env: &api-env
   LOG_LEVEL: ${LOG_LEVEL:-info}
   SENTRY_DSN: ${SENTRY_DSN:-}
   GIT_SHA: ${IMAGE_TAG:-dev}
+  TENANT_DATABASE_URL: postgresql://myapp_rls:${TENANT_DB_PASSWORD:?required}@postgres:5432/${POSTGRES_DB:?required}
 
 services:
   postgres:
@@ -110,8 +111,10 @@ services:
       target: migrate
     restart: 'no'
     logging: *logging
+    command: ['sh', '-c', 'npm run db:deploy -w apps/api && npm run db:tenant-role -w apps/api']
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      TENANT_DATABASE_URL: postgresql://myapp_rls:${TENANT_DB_PASSWORD:?required}@postgres:5432/${POSTGRES_DB}
     depends_on:
       postgres:
         condition: service_healthy

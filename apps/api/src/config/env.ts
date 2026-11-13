@@ -100,6 +100,11 @@ export const envSchema = z
     }),
     GIT_SHA: optionalText,
     HEALTH_REQUIRE_WORKER: flag('false'),
+    // روز ۲۰ (ب): نقش دیتابیس بدون BYPASSRLS برای کلاینت tenant. خالی = RLS فقط در سطح برنامه (توسعه)
+    TENANT_DATABASE_URL: optionalText.refine(
+      (v) => v === undefined || /^postgres(ql)?:\/\/\S+$/.test(v),
+      { message: 'TENANT_DATABASE_URL must be a postgres URL' },
+    ),
   })
   .superRefine((env, ctx) => {
     if (env.SMS_DRIVER === 'melipayamak') {
@@ -180,6 +185,21 @@ export const envSchema = z
         code: 'custom',
         path: ['RATE_LIMIT_ENABLED'],
         message: 'RATE_LIMIT_ENABLED must be true in production',
+      });
+    }
+    // RLS: نقش tenant باید با نقش سیستمی فرق داشته باشد، وگرنه RLS بی‌صدا دور زده می‌شود
+    if (env.TENANT_DATABASE_URL && env.TENANT_DATABASE_URL === env.DATABASE_URL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TENANT_DATABASE_URL'],
+        message: 'TENANT_DATABASE_URL must use a different role than DATABASE_URL',
+      });
+    }
+    if (env.NODE_ENV === 'production' && !env.TENANT_DATABASE_URL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TENANT_DATABASE_URL'],
+        message: 'TENANT_DATABASE_URL is required in production (row level security)',
       });
     }
   });

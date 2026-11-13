@@ -11,6 +11,7 @@ import { TenantMiddleware } from './tenant.middleware';
 import { TenantResolver } from './tenant-resolver';
 import { StoreUrlService } from './store-url.service';
 import { TenantStatusService } from './tenant-status.service';
+import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 
 @Global()
 @Module({
@@ -24,8 +25,9 @@ import { TenantStatusService } from './tenant-status.service';
     TenantStatusService,
     {
       provide: TENANT_DB,
-      inject: [PrismaService, TenantContext],
-      useFactory: (prisma: PrismaService, ctx: TenantContext) => createTenantClient(prisma, ctx),
+      inject: [TenantPrismaService, TenantContext],
+      useFactory: (prisma: TenantPrismaService, ctx: TenantContext) =>
+        createTenantClient(prisma, ctx, { rls: prisma.rls }),
     },
   ],
   exports: [TenantContext, TenantResolver, TENANT_DB, StoreUrlService, TenantStatusService],
