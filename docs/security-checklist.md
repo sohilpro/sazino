@@ -27,6 +27,9 @@
 - [ ] تست بازیابی هفتگی سبز است (`/backups/last-restore-test.json`)
 - [ ] یک نسخه‌ی رمزشده بیرون از سرور هست و کلید `age` جایی جز همان سرور نگه‌داری می‌شود
 - [ ] تمرین بازیابی کامل حداقل یک‌بار انجام شده
+- [ ] `TENANT_DATABASE_URL` روی نقش `myapp_rls` (بدون BYPASSRLS) است؛ `npm run db:tenant-role` در دیپلوی
+- [ ] `TENANT_DATABASE_URL` روی نقش `myapp_rls` (بدون BYPASSRLS) است؛ `npm run db:tenant-role` در دیپلوی اجرا شده و لاگ API می‌گوید «row level security enforced»
+- [ ] تست‌های `rls` و `rls-schema` سبزند (هر جدول تازه‌ی دارای tenant_id باید در یک migration جدید policy بگیرد)
 
 ## مانیتورینگ
 - [ ] `GET /api/health` با نسخه‌ی درست و `worker: up` جواب می‌دهد

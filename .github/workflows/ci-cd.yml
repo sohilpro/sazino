@@ -156,11 +156,11 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: apps/e2e
       - run: npm run db:deploy -w apps/api
+      - run: npm run db:tenant-role -w apps/api
       - run: npm run db:seed -w apps/api
       - run: npm run build -w @myapp/shared-types
       - run: npm run build -w @myapp/api
       - run: npm run test:e2e -w @myapp/e2e
-      - run: npm run db:tenant-role -w apps/api
 
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -310,7 +310,6 @@ jobs:
           $COMPOSE pull
           if $COMPOSE ps --status running --services | grep -qx postgres; then
             $COMPOSE run --rm --no-deps --entrypoint /usr/local/bin/backup.sh backup
-            $COMPOSE run --rm migrate npm run db:tenant-role -w apps/api
           fi
           $COMPOSE up -d --remove-orphans
           docker image prune -f

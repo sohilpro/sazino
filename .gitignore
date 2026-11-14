@@ -17,3 +17,6 @@ apps/api/src/generated
 apps/e2e/.logs
 apps/e2e/test-results
 apps/e2e/playwright-report
+
+backups/
+backup-ssh/
