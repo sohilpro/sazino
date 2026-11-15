@@ -37,12 +37,12 @@ async function submit() {
 
 <template>
   <div class="card">
-    <h1 class="mb-1 text-2xl font-extrabold">ورود به پنل فروشنده</h1>
+    <h1 class="page-title mb-1">ورود به پنل فروشنده</h1>
     <p class="mb-6 text-sm text-slate-500">برای مدیریت فروشگاه خود وارد شوید.</p>
 
     <p
       v-if="route.query.suspended"
-      class="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800"
+      class="alert-warn mb-4"
       role="alert"
     >
       فروشگاه شما توسط پلتفرم تعلیق شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
@@ -64,11 +64,11 @@ async function submit() {
         />
       </label>
 
-      <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+      <p v-if="error" class="alert-error" role="alert">
         {{ error }}
       </p>
 
-      <button type="submit" class="btn btn-primary w-full" :disabled="loading">
+      <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
         {{ loading ? 'در حال ورود…' : 'ورود' }}
       </button>
     </form>

@@ -82,7 +82,7 @@ async function submit() {
       email: form.email.trim(),
       password: form.password,
     });
-    await navigateTo('/');
+    await navigateTo('/onboarding');
   } catch (e) {
     error.value = apiErrorMessage(e, 'ثبت‌نام ناموفق بود');
   } finally {
@@ -93,7 +93,7 @@ async function submit() {
 
 <template>
   <div class="card">
-    <h1 class="mb-1 text-2xl font-extrabold">ساخت فروشگاه</h1>
+    <h1 class="page-title mb-1">ساخت فروشگاه</h1>
     <p class="mb-6 text-sm text-slate-500">در چند ثانیه فروشگاه خودتان را بسازید.</p>
 
     <form class="space-y-4" novalidate @submit.prevent="submit">
@@ -145,11 +145,11 @@ async function submit() {
         />
       </label>
 
-      <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+      <p v-if="error" class="alert-error" role="alert">
         {{ error }}
       </p>
 
-      <button type="submit" class="btn btn-primary w-full" :disabled="loading">
+      <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
         {{ loading ? 'در حال ساخت…' : 'ساخت فروشگاه' }}
       </button>
     </form>
