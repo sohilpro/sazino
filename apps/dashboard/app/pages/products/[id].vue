@@ -18,12 +18,13 @@ function onSaved(updated: ProductDto) {
 
 <template>
   <div class="space-y-6">
-    <header>
-      <NuxtLink to="/products" class="text-sm text-slate-500 hover:text-brand-600">
-        → بازگشت به محصولات
-      </NuxtLink>
-      <h1 class="mt-1 text-2xl font-extrabold">{{ product?.title ?? 'ویرایش محصول' }}</h1>
-    </header>
+    <PageHeader
+      :title="product?.title ?? 'ویرایش محصول'"
+      back-to="/products"
+      back-label="محصولات"
+    >
+      <template v-if="product" #meta><StatusBadge :status="product.status" /></template>
+    </PageHeader>
 
     <div v-if="error" class="card text-center">
       <p class="mb-3 text-red-600">

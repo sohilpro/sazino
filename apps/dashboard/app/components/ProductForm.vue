@@ -165,6 +165,16 @@ function onVariantsSaved(product: ProductDto) {
   emit('saved', product);
 }
 
+const STATUS_HINT: Record<ProductStatus, string> = {
+  DRAFT: 'فقط برای شما قابل مشاهده است',
+  ACTIVE: 'در ویترین نمایش داده می‌شود',
+  ARCHIVED: 'از ویترین برداشته می‌شود و اطلاعاتش حفظ می‌شود',
+};
+
+const submitLabel = computed(() =>
+  saving.value ? 'در حال ذخیره…' : uploading.value ? 'منتظر آپلود…' : isEdit ? 'ذخیره‌ی محصول' : 'ساخت محصول',
+);
+
 /** Enter داخل فیلدها فرم را ارسال نکند (در ویرایش، ردیف تنوع دکمه‌ی خودش را دارد) */
 function blockEnterSubmit(e: KeyboardEvent) {
   if ((e.target as HTMLElement).tagName === 'INPUT') e.preventDefault();
@@ -172,11 +182,14 @@ function blockEnterSubmit(e: KeyboardEvent) {
 </script>
 
 <template>
-  <form class="grid gap-6 lg:grid-cols-3" novalidate @submit.prevent="save" @keydown.enter="blockEnterSubmit">
+  <form
+    class="grid gap-6 pb-24 lg:grid-cols-3 lg:pb-0"
+    novalidate
+    @submit.prevent="save"
+    @keydown.enter="blockEnterSubmit"
+  >
     <div class="space-y-6 lg:col-span-2">
-      <section class="card space-y-4">
-        <h2 class="text-lg font-bold">اطلاعات اصلی</h2>
-
+      <FormSection title="اطلاعات اصلی">
         <label class="block">
           <span class="label">عنوان محصول</span>
           <input
@@ -192,11 +205,11 @@ function blockEnterSubmit(e: KeyboardEvent) {
           <input
             v-model="form.slug"
             dir="ltr"
-            class="input"
+            class="input tech"
             maxlength="80"
-            :placeholder="isEdit ? '' : 'اگر خالی بماند از روی عنوان ساخته می‌شود'"
+            :placeholder="isEdit ? '' : 'خالی بماند، از روی عنوان ساخته می‌شود'"
           />
-          <span v-if="isEdit" class="mt-1 block text-xs text-amber-600">
+          <span v-if="isEdit" class="hint !text-amber-600">
             با تغییر slug، آدرس قبلی صفحه‌ی محصول دیگر کار نمی‌کند.
           </span>
         </label>
@@ -204,36 +217,57 @@ function blockEnterSubmit(e: KeyboardEvent) {
         <label class="block">
           <span class="label">توضیحات</span>
           <textarea v-model="form.description" rows="6" class="input" maxlength="20000" />
+          <span class="hint text-end">{{ formatNumber(form.description.length) }} / {{ formatNumber(20000) }}</span>
         </label>
-      </section>
+      </FormSection>
 
-      <section class="card space-y-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold">تصاویر</h2>
-          <span class="text-xs text-slate-500">{{ formatNumber(images.length) }} از ۱۰</span>
-        </div>
+      <FormSection
+        title="تصاویر"
+        description="تصویر اول، تصویر اصلی محصول در ویترین است."
+      >
+        <template #aside>
+          <span class="badge bg-slate-100 text-slate-600">{{ formatNumber(images.length) }} از ۱۰</span>
+        </template>
         <ImageManager v-model="images" v-model:busy="uploading" />
-      </section>
+      </FormSection>
 
-      <section class="card space-y-4">
-        <h2 class="text-lg font-bold">قیمت، تنوع‌ها و موجودی</h2>
+      <FormSection
+        title="قیمت، تنوع‌ها و موجودی"
+        description="اگر محصول تنوع ندارد، همان یک تنوع پیش‌فرض کافی است."
+      >
         <VariantsEditor v-model="variants" :product-id="current?.id" @saved="onVariantsSaved" />
-      </section>
+      </FormSection>
     </div>
 
     <aside>
-      <div class="card space-y-4 lg:sticky lg:top-6">
-        <label class="block">
-          <span class="label">وضعیت</span>
-          <select v-model="form.status" class="input">
-            <option v-for="o in PRODUCT_STATUS_OPTIONS" :key="o.value" :value="o.value">
-              {{ o.label }}
-            </option>
-          </select>
-          <span class="mt-1 block text-xs text-slate-500">
-            فقط محصولات «فعال» در ویترین نمایش داده می‌شوند.
-          </span>
-        </label>
+      <div class="card space-y-5 lg:sticky lg:top-6">
+        <fieldset>
+          <legend class="label">وضعیت انتشار</legend>
+          <div class="space-y-2">
+            <label
+              v-for="o in PRODUCT_STATUS_OPTIONS"
+              :key="o.value"
+              class="flex cursor-pointer items-start gap-3 rounded-xl border-2 p-3 transition"
+              :class="
+                form.status === o.value
+                  ? 'border-brand-600 bg-brand-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              "
+            >
+              <input
+                v-model="form.status"
+                type="radio"
+                name="status"
+                :value="o.value"
+                class="mt-1 size-4 accent-brand-600"
+              />
+              <span>
+                <span class="block text-sm font-bold">{{ o.label }}</span>
+                <span class="block text-xs text-slate-500">{{ STATUS_HINT[o.value] }}</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
 
         <label class="block">
           <span class="label">دسته‌بندی</span>
@@ -246,24 +280,37 @@ function blockEnterSubmit(e: KeyboardEvent) {
           </NuxtLink>
         </label>
 
-        <div v-if="current" class="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-          <div>{{ formatPriceRange(current.minPrice, current.maxPrice) }}</div>
-          <div>ایجاد: {{ formatDate(current.createdAt) }}</div>
-        </div>
+        <dl v-if="current" class="space-y-1 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
+          <div class="flex justify-between gap-2">
+            <dt>قیمت</dt>
+            <dd class="font-medium text-slate-700">{{ formatPriceRange(current.minPrice, current.maxPrice) }}</dd>
+          </div>
+          <div class="flex justify-between gap-2">
+            <dt>ایجاد</dt>
+            <dd>{{ formatDate(current.createdAt) }}</dd>
+          </div>
+        </dl>
 
-        <p v-if="formError" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-          {{ formError }}
-        </p>
+        <p v-if="formError" class="alert-error max-lg:hidden" role="alert">{{ formError }}</p>
 
-        <div class="flex gap-2">
-          <button type="submit" class="btn btn-primary flex-1" :disabled="saving || uploading">
-            {{
-              saving ? 'در حال ذخیره…' : uploading ? 'منتظر آپلود…' : isEdit ? 'ذخیره‌ی محصول' : 'ساخت محصول'
-            }}
+        <div class="flex gap-2 max-lg:hidden">
+          <button type="submit" class="btn btn-primary btn-lg flex-1" :disabled="saving || uploading">
+            {{ submitLabel }}
           </button>
-          <NuxtLink to="/products" class="btn btn-secondary">انصراف</NuxtLink>
+          <NuxtLink to="/products" class="btn btn-secondary btn-lg">انصراف</NuxtLink>
         </div>
       </div>
     </aside>
+
+    <!-- نوار ذخیره‌ی موبایل -->
+    <div class="fixed inset-x-0 bottom-0 z-20 space-y-2 border-t border-slate-200 bg-white p-3 lg:hidden">
+      <p v-if="formError" class="alert-error" role="alert">{{ formError }}</p>
+      <div class="flex gap-2">
+        <button type="submit" class="btn btn-primary btn-lg flex-1" :disabled="saving || uploading">
+          {{ submitLabel }}
+        </button>
+        <NuxtLink to="/products" class="btn btn-secondary btn-lg">انصراف</NuxtLink>
+      </div>
+    </div>
   </form>
 </template>

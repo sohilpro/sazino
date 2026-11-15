@@ -10,13 +10,12 @@ async function onSaved(product: ProductDto) {
 
 <template>
   <div class="space-y-6">
-    <header>
-      <NuxtLink to="/products" class="text-sm text-slate-500 hover:text-brand-600">
-        → بازگشت به محصولات
-      </NuxtLink>
-      <h1 class="mt-1 text-2xl font-extrabold">محصول جدید</h1>
-    </header>
-
+    <PageHeader
+      title="محصول جدید"
+      subtitle="اطلاعات، تصاویر و قیمت را وارد کنید؛ بعد از ساخت، همیشه می‌توانید ویرایش کنید."
+      back-to="/products"
+      back-label="محصولات"
+    />
     <ProductForm @saved="onSaved" />
   </div>
 </template>

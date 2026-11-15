@@ -90,7 +90,7 @@ function removeAt(index: number) {
       <div
         v-for="(img, i) in images"
         :key="img.id"
-        class="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+        class="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
       >
         <img
           :src="img.urls.sm"
@@ -100,34 +100,37 @@ function removeAt(index: number) {
         />
         <span v-if="i === 0" class="badge absolute start-2 top-2 bg-brand-600 text-white">اصلی</span>
 
-        <div class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 p-1.5">
+        <div
+          class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent p-2 pt-6"
+        >
           <div class="flex gap-1">
             <button
               type="button"
-              class="rounded bg-white/90 px-2 text-sm disabled:opacity-40"
+              class="grid size-7 place-items-center rounded-md bg-white/90 text-slate-700 transition hover:bg-white disabled:opacity-40"
               :disabled="i === 0"
               aria-label="انتقال به قبل"
               @click="move(i, -1)"
             >
-              →
+              <AppIcon name="arrowRight" :size="14" />
             </button>
             <button
               type="button"
-              class="rounded bg-white/90 px-2 text-sm disabled:opacity-40"
+              class="grid size-7 place-items-center rounded-md bg-white/90 text-slate-700 transition hover:bg-white disabled:opacity-40"
               :disabled="i === images.length - 1"
               aria-label="انتقال به بعد"
               @click="move(i, 1)"
             >
-              ←
+              <AppIcon name="arrowLeft" :size="14" />
             </button>
           </div>
           <button
             type="button"
-            class="rounded bg-red-600 px-2 text-sm text-white"
+            class="grid size-7 place-items-center rounded-md bg-red-600 text-white transition hover:bg-red-700"
             aria-label="جدا کردن از محصول"
+            title="جدا کردن از محصول"
             @click="removeAt(i)"
           >
-            ✕
+            <AppIcon name="trash" :size="14" />
           </button>
         </div>
       </div>
@@ -135,15 +138,16 @@ function removeAt(index: number) {
       <div
         v-for="n in pending"
         :key="`pending-${n}`"
-        class="flex aspect-square items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-500"
+        class="flex aspect-square animate-pulse flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-500"
       >
+        <AppIcon name="upload" :size="22" />
         در حال آپلود…
       </div>
 
       <button
         v-if="images.length + pending < MAX_IMAGES"
         type="button"
-        class="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed text-sm transition"
+        class="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed text-sm transition"
         :class="
           dragging
             ? 'border-brand-500 bg-brand-50 text-brand-700'
@@ -154,8 +158,8 @@ function removeAt(index: number) {
         @dragleave="dragging = false"
         @drop.prevent="onDrop"
       >
-        <span class="text-2xl leading-none">+</span>
-        <span>افزودن تصویر</span>
+        <AppIcon name="image" :size="26" />
+        <span class="font-medium">افزودن تصویر</span>
         <span class="text-xs">یا فایل را اینجا رها کنید</span>
       </button>
     </div>
@@ -169,9 +173,9 @@ function removeAt(index: number) {
       @change="onPick"
     />
 
-    <p class="text-xs text-slate-500">
-      JPEG، PNG، WebP، GIF — حداکثر ۵ مگابایت. تصویر اول، تصویر اصلی محصول است (در ترتیب راست‌به‌چپ،
-      → یعنی «قبل‌تر»). حذف، فقط تصویر را از همین محصول جدا می‌کند. تغییرات با «ذخیره» اعمال می‌شود.
+    <p class="hint">
+      JPEG، PNG، WebP، GIF — حداکثر ۵ مگابایت. با دکمه‌های فلش ترتیب را عوض کنید؛ حذف فقط تصویر را از همین
+      محصول جدا می‌کند. تغییرات با «ذخیره» اعمال می‌شود.
     </p>
   </div>
 </template>

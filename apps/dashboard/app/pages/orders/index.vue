@@ -66,12 +66,6 @@ function clearFilters() {
   void router.replace({ query: {} });
 }
 
-const DOT: Record<OrderStatus, string> = {
-  PENDING: 'bg-amber-500',
-  PAID: 'bg-emerald-500',
-  SHIPPED: 'bg-sky-500',
-  CANCELED: 'bg-slate-400',
-};
 </script>
 
 <template>
@@ -108,7 +102,7 @@ const DOT: Record<OrderStatus, string> = {
         @click="setQuery({ status: s, page: undefined })"
       >
         <div class="flex items-center gap-2 text-sm text-slate-500">
-          <span class="size-2 rounded-full" :class="DOT[s]" />
+          <span class="size-2 rounded-full" :class="ORDER_STATUS_DOT[s]" />
           {{ ORDER_STATUS_LABEL[s] }}
         </div>
         <div class="mt-1 text-2xl font-extrabold">{{ stats ? formatNumber(stats[s]) : '…' }}</div>
@@ -184,7 +178,7 @@ const DOT: Record<OrderStatus, string> = {
                   </td>
                   <td class="px-4 py-3">
                     <span class="badge gap-1.5" :class="ORDER_STATUS_CLASS[o.status]">
-                      <span class="size-1.5 rounded-full" :class="DOT[o.status]" />
+                      <span class="size-1.5 rounded-full" :class="ORDER_STATUS_DOT[o.status]" />
                       {{ ORDER_STATUS_LABEL[o.status] }}
                     </span>
                   </td>
@@ -204,7 +198,7 @@ const DOT: Record<OrderStatus, string> = {
                 <div class="flex items-center justify-between">
                   <span class="font-bold">#{{ formatNumber(o.number) }}</span>
                   <span class="badge gap-1.5" :class="ORDER_STATUS_CLASS[o.status]">
-                    <span class="size-1.5 rounded-full" :class="DOT[o.status]" />
+                    <span class="size-1.5 rounded-full" :class="ORDER_STATUS_DOT[o.status]" />
                     {{ ORDER_STATUS_LABEL[o.status] }}
                   </span>
                 </div>
