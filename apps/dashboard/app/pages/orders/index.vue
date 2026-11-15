@@ -57,40 +57,73 @@ watch(search, (value) => {
   timer = setTimeout(() => setQuery({ q: value.trim() || undefined, page: undefined }), 350);
 });
 onBeforeUnmount(() => clearTimeout(timer));
+
+const hasFilters = computed(() => Boolean(filters.value.q || filters.value.status));
+const neverHadOrders = computed(() => totalCount.value === 0);
+
+function clearFilters() {
+  search.value = '';
+  void router.replace({ query: {} });
+}
+
+const DOT: Record<OrderStatus, string> = {
+  PENDING: 'bg-amber-500',
+  PAID: 'bg-emerald-500',
+  SHIPPED: 'bg-sky-500',
+  CANCELED: 'bg-slate-400',
+};
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-2xl font-extrabold">سفارش‌ها</h1>
-      <button type="button" class="btn btn-secondary btn-sm" @click="() => refresh()">بروزرسانی</button>
-    </header>
+  <div class="space-y-5">
+    <PageHeader
+      title="سفارش‌ها"
+      :subtitle="totalCount !== null ? `${formatNumber(totalCount)} سفارش` : undefined"
+    >
+      <button type="button" class="btn btn-secondary" :disabled="status === 'pending'" @click="() => refresh()">
+        <AppIcon name="refresh" :size="16" :class="status === 'pending' ? 'animate-spin' : ''" />
+        بروزرسانی
+      </button>
+    </PageHeader>
 
-    <div class="flex flex-wrap gap-2">
+    <!-- کارت‌های وضعیت (هم آمار، هم فیلتر) -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       <button
         type="button"
-        class="rounded-full border px-4 py-1.5 text-sm transition"
-        :class="!filters.status ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white hover:border-brand-500'"
+        class="card text-start !p-4 transition"
+        :class="!filters.status ? 'border-brand-600 ring-2 ring-brand-600/20' : 'hover:border-slate-300'"
+        :aria-pressed="!filters.status"
         @click="setQuery({ status: undefined, page: undefined })"
       >
-        همه <span v-if="totalCount !== null">({{ formatNumber(totalCount) }})</span>
+        <div class="text-sm text-slate-500">همه‌ی سفارش‌ها</div>
+        <div class="mt-1 text-2xl font-extrabold">{{ totalCount === null ? '…' : formatNumber(totalCount) }}</div>
       </button>
       <button
         v-for="s in ORDER_STATUSES"
         :key="s"
         type="button"
-        class="rounded-full border px-4 py-1.5 text-sm transition"
-        :class="filters.status === s ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white hover:border-brand-500'"
+        class="card text-start !p-4 transition"
+        :class="filters.status === s ? 'border-brand-600 ring-2 ring-brand-600/20' : 'hover:border-slate-300'"
+        :aria-pressed="filters.status === s"
         @click="setQuery({ status: s, page: undefined })"
       >
-        {{ ORDER_STATUS_LABEL[s] }} <span v-if="stats">({{ formatNumber(stats[s]) }})</span>
+        <div class="flex items-center gap-2 text-sm text-slate-500">
+          <span class="size-2 rounded-full" :class="DOT[s]" />
+          {{ ORDER_STATUS_LABEL[s] }}
+        </div>
+        <div class="mt-1 text-2xl font-extrabold">{{ stats ? formatNumber(stats[s]) : '…' }}</div>
       </button>
     </div>
 
-    <label class="block max-w-md">
-      <span class="label">جستجو</span>
-      <input v-model="search" class="input" placeholder="شماره‌ی سفارش، نام گیرنده یا موبایل" />
-    </label>
+    <div class="card flex flex-wrap items-center gap-3 !p-3">
+      <div class="min-w-56 flex-1">
+        <SearchInput v-model="search" placeholder="شماره‌ی سفارش، نام گیرنده یا موبایل" />
+      </div>
+      <button v-if="hasFilters" type="button" class="btn btn-ghost btn-sm" @click="clearFilters">
+        <AppIcon name="close" :size="14" />
+        پاک کردن فیلترها
+      </button>
+    </div>
 
     <div v-if="error" class="card text-center">
       <p class="mb-3 text-red-600">{{ apiErrorMessage(error) }}</p>
@@ -98,53 +131,95 @@ onBeforeUnmount(() => clearTimeout(timer));
     </div>
 
     <template v-else-if="data">
-      <p
-        v-if="!data.items.length"
-        class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500"
+      <EmptyState
+        v-if="!data.items.length && hasFilters"
+        icon="search"
+        title="سفارشی با این فیلترها پیدا نشد"
+        description="وضعیت یا عبارت جستجو را تغییر دهید."
       >
-        سفارشی پیدا نشد.
-      </p>
+        <button type="button" class="btn btn-secondary" @click="clearFilters">پاک کردن فیلترها</button>
+      </EmptyState>
 
-      <div
-        v-else
-        class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm transition"
-        :class="status === 'pending' ? 'opacity-60' : ''"
+      <EmptyState
+        v-else-if="!data.items.length"
+        icon="orders"
+        title="هنوز سفارشی ثبت نشده"
+        :description="
+          neverHadOrders
+            ? 'وقتی مشتری‌ها از فروشگاه شما خرید کنند، سفارش‌ها اینجا نمایش داده می‌شوند. مطمئن شوید محصول فعال و درگاه پرداخت تنظیم است.'
+            : undefined
+        "
       >
-        <table class="w-full text-sm">
-          <thead class="bg-slate-50 text-slate-500">
-            <tr>
-              <th class="px-4 py-3 text-start font-medium">سفارش</th>
-              <th class="px-4 py-3 text-start font-medium">تاریخ</th>
-              <th class="px-4 py-3 text-start font-medium">گیرنده</th>
-              <th class="px-4 py-3 text-start font-medium">وضعیت</th>
-              <th class="px-4 py-3 text-start font-medium">مبلغ</th>
-              <th class="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr v-for="o in data.items" :key="o.id" class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold">
-                <NuxtLink :to="`/orders/${o.number}`" class="hover:text-brand-600">{{ formatNumber(o.number) }}</NuxtLink>
-                <div class="text-xs font-normal text-slate-400">{{ formatNumber(o.itemCount) }} کالا</div>
-              </td>
-              <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ formatDateTime(o.createdAt) }}</td>
-              <td class="px-4 py-3">
-                {{ o.recipientName }}
-                <div class="text-xs text-slate-400" dir="ltr">{{ o.customerPhone }}</div>
-              </td>
-              <td class="px-4 py-3">
-                <span class="badge" :class="ORDER_STATUS_CLASS[o.status]">{{ ORDER_STATUS_LABEL[o.status] }}</span>
-              </td>
-              <td class="whitespace-nowrap px-4 py-3 font-medium">{{ formatPrice(o.total) }}</td>
-              <td class="px-4 py-3 text-end">
-                <NuxtLink :to="`/orders/${o.number}`" class="btn btn-secondary btn-sm">مشاهده</NuxtLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <NuxtLink to="/products" class="btn btn-secondary">مدیریت محصولات</NuxtLink>
+        <NuxtLink to="/settings/payment" class="btn btn-secondary">درگاه پرداخت</NuxtLink>
+      </EmptyState>
 
-      <AppPagination :meta="data.meta" @change="(n) => setQuery({ page: n === 1 ? undefined : n })" />
+      <template v-else>
+        <div :class="status === 'pending' ? 'pointer-events-none opacity-60 transition' : 'transition'">
+          <!-- جدول (دسکتاپ) -->
+          <div class="hidden overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-card md:block">
+            <table class="w-full text-sm">
+              <thead class="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
+                <tr>
+                  <th class="px-4 py-3 text-start font-medium">سفارش</th>
+                  <th class="px-4 py-3 text-start font-medium">تاریخ</th>
+                  <th class="px-4 py-3 text-start font-medium">گیرنده</th>
+                  <th class="px-4 py-3 text-start font-medium">وضعیت</th>
+                  <th class="px-4 py-3 text-start font-medium">مبلغ</th>
+                  <th class="w-20 px-4 py-3"><span class="sr-only">عملیات</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="o in data.items" :key="o.id" class="transition hover:bg-slate-50">
+                  <td class="px-4 py-3">
+                    <NuxtLink :to="`/orders/${o.number}`" class="font-bold hover:text-brand-600">
+                      #{{ formatNumber(o.number) }}
+                    </NuxtLink>
+                    <div class="text-xs text-slate-400">{{ formatNumber(o.itemCount) }} کالا</div>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 text-slate-600">{{ formatDateTime(o.createdAt) }}</td>
+                  <td class="px-4 py-3">
+                    {{ o.recipientName }}
+                    <div class="tech text-xs text-slate-400">{{ o.customerPhone }}</div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="badge gap-1.5" :class="ORDER_STATUS_CLASS[o.status]">
+                      <span class="size-1.5 rounded-full" :class="DOT[o.status]" />
+                      {{ ORDER_STATUS_LABEL[o.status] }}
+                    </span>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3 font-medium">{{ formatPrice(o.total) }}</td>
+                  <td class="px-4 py-3 text-end">
+                    <NuxtLink :to="`/orders/${o.number}`" class="btn btn-secondary btn-sm">مشاهده</NuxtLink>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- کارت (موبایل) -->
+          <ul class="space-y-3 md:hidden">
+            <li v-for="o in data.items" :key="o.id">
+              <NuxtLink :to="`/orders/${o.number}`" class="card block !p-4 transition hover:border-brand-500">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold">#{{ formatNumber(o.number) }}</span>
+                  <span class="badge gap-1.5" :class="ORDER_STATUS_CLASS[o.status]">
+                    <span class="size-1.5 rounded-full" :class="DOT[o.status]" />
+                    {{ ORDER_STATUS_LABEL[o.status] }}
+                  </span>
+                </div>
+                <div class="mt-2 text-sm">{{ o.recipientName }}</div>
+                <div class="mt-1 flex items-center justify-between text-xs text-slate-500">
+                  <span>{{ formatDateTime(o.createdAt) }} · {{ formatNumber(o.itemCount) }} کالا</span>
+                  <span class="text-sm font-medium text-slate-800">{{ formatPrice(o.total) }}</span>
+                </div>
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+
+        <AppPagination :meta="data.meta" @change="(n) => setQuery({ page: n === 1 ? undefined : n })" />
+      </template>
     </template>
   </div>
 </template>

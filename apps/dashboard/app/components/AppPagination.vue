@@ -6,7 +6,11 @@ const emit = defineEmits<{ change: [page: number] }>();
 </script>
 
 <template>
-  <div v-if="meta.totalPages > 1" class="flex flex-wrap items-center justify-between gap-3">
+  <nav
+    v-if="meta.totalPages > 1"
+    class="flex flex-wrap items-center justify-between gap-3"
+    aria-label="صفحه‌بندی"
+  >
     <span class="text-sm text-slate-500">
       صفحه {{ formatNumber(meta.page) }} از {{ formatNumber(meta.totalPages) }} ·
       {{ formatNumber(meta.total) }} مورد
@@ -18,6 +22,7 @@ const emit = defineEmits<{ change: [page: number] }>();
         :disabled="meta.page <= 1"
         @click="emit('change', meta.page - 1)"
       >
+        <AppIcon name="chevronStart" :size="14" />
         قبلی
       </button>
       <button
@@ -27,7 +32,8 @@ const emit = defineEmits<{ change: [page: number] }>();
         @click="emit('change', meta.page + 1)"
       >
         بعدی
+        <AppIcon name="chevronEnd" :size="14" />
       </button>
     </div>
-  </div>
+  </nav>
 </template>
