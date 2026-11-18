@@ -7,6 +7,9 @@ const PATHS = {
   close: ['M6 6l12 12M18 6 6 18'],
   chevronLeft: ['m15 6-6 6 6 6'],
   chevronRight: ['m9 6 6 6-6 6'],
+  plus: ['M12 5v14M5 12h14'],
+  minus: ['M5 12h14'],
+  check: ['m5 12.5 4.5 4.5L19 7.5'],
   box: ['m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z', 'm4 7.5 8 4.5 8-4.5M12 12v9'],
   alert: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', 'M12 8v5M12 16h.01'],
 } as const;

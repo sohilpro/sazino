@@ -54,6 +54,7 @@ const selected = computed(
   () =>
     product.value?.variants.find((v) => v.id === selectedId.value) ?? product.value?.variants[0],
 );
+const hasPriceRange = computed(() => (product.value?.minPrice ?? 0) !== (product.value?.maxPrice ?? 0));
 const selectedDiscount = computed(() => (selected.value ? variantDiscount(selected.value) : null));
 
 // ───────────── مسیر و سئو ─────────────
@@ -112,87 +113,102 @@ useHead(() => {
 </script>
 
 <template>
-  <div v-if="product" class="space-y-10">
+  <div v-if="product" class="space-y-10 pb-24 md:pb-0">
     <Breadcrumbs :items="crumbs" />
 
-    <div class="grid gap-8 lg:grid-cols-2">
-      <ProductGallery :images="product.images" :title="product.title" />
+    <div class="grid gap-8 lg:grid-cols-2 lg:gap-12">
+      <div class="lg:sticky lg:top-32 lg:self-start">
+        <ProductGallery :images="product.images" :title="product.title" />
+      </div>
 
-      <div class="space-y-5">
-        <div>
-          <h1 class="text-2xl font-extrabold">{{ product.title }}</h1>
+      <div class="space-y-6">
+        <header class="space-y-3">
           <NuxtLink
             v-if="product.category"
             :to="`/categories/${encodeURIComponent(product.category.slug)}`"
-            class="mt-1 inline-block text-sm text-brand-700 hover:underline"
+            class="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
           >
             {{ product.category.name }}
           </NuxtLink>
-        </div>
+          <h1 class="text-2xl font-extrabold leading-9 sm:text-3xl sm:leading-10">{{ product.title }}</h1>
+        </header>
 
-        <div v-if="selected" class="space-y-1">
-          <div class="flex flex-wrap items-baseline gap-3">
-            <span class="text-3xl font-extrabold text-brand-700">{{
-              formatPrice(selected.price)
-            }}</span>
-            <span v-if="selectedDiscount" class="badge bg-red-600 text-white">
-              {{ formatNumber(selectedDiscount.percent) }}٪ تخفیف
+        <div class="card space-y-5 !p-5 sm:!p-6">
+          <div v-if="selected" class="space-y-1">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="text-3xl font-extrabold text-brand-700">{{ formatPrice(selected.price) }}</span>
+              <span v-if="selectedDiscount" class="badge bg-rose-600 text-white">
+                {{ formatNumber(selectedDiscount.percent) }}٪ تخفیف
+              </span>
+            </div>
+            <div v-if="selectedDiscount" class="text-sm text-slate-400 line-through">
+              {{ formatPrice(selectedDiscount.compareAt) }}
+            </div>
+          </div>
+
+          <div v-if="product.variants.length > 1" class="space-y-2">
+            <div class="text-sm font-medium text-slate-700">
+              انتخاب تنوع<span v-if="selected">: <b class="text-slate-900">{{ selected.title }}</b></span>
+            </div>
+            <div role="radiogroup" aria-label="انتخاب تنوع" class="flex flex-wrap gap-2">
+              <button
+                v-for="v in product.variants"
+                :key="v.id"
+                type="button"
+                role="radio"
+                :aria-checked="v.id === selectedId"
+                class="rounded-xl border-2 px-4 py-2 text-start text-sm transition"
+                :class="[
+                  v.id === selectedId
+                    ? 'border-brand-600 bg-brand-50 text-brand-700'
+                    : 'border-slate-200 bg-white hover:border-slate-300',
+                  !v.inStock && 'border-dashed text-slate-400',
+                ]"
+                @click="selectedId = v.id"
+              >
+                <span class="block font-medium" :class="!v.inStock && 'line-through'">{{ v.title }}</span>
+                <span v-if="hasPriceRange" class="block text-xs" :class="v.id === selectedId ? 'text-brand-700' : 'text-slate-500'">
+                  {{ v.inStock ? formatPrice(v.price) : 'ناموجود' }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="selected" class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span class="flex items-center gap-1.5" :class="selected.inStock ? 'text-emerald-700' : 'text-slate-500'">
+              <span class="size-2 rounded-full" :class="selected.inStock ? 'bg-emerald-500' : 'bg-slate-400'" />
+              {{ selected.inStock ? 'موجود' : 'ناموجود' }}
+            </span>
+            <span v-if="selected.sku" class="text-xs text-slate-500">
+              کد محصول: <span class="tech">{{ selected.sku }}</span>
             </span>
           </div>
-          <div v-if="selectedDiscount" class="text-sm text-slate-400 line-through">
-            {{ formatPrice(selectedDiscount.compareAt) }}
-          </div>
+
+          <AddToCart :variant="selected" sticky />
         </div>
 
-        <div v-if="product.variants.length > 1" class="space-y-2">
-          <span class="text-sm font-medium text-slate-700">انتخاب تنوع</span>
-          <div role="radiogroup" aria-label="انتخاب تنوع" class="flex flex-wrap gap-2">
-            <button
-              v-for="v in product.variants"
-              :key="v.id"
-              type="button"
-              role="radio"
-              :aria-checked="v.id === selectedId"
-              class="rounded-lg border px-3 py-2 text-sm transition"
-              :class="[
-                v.id === selectedId
-                  ? 'border-brand-600 bg-brand-50 text-brand-700 ring-2 ring-brand-500/30'
-                  : 'border-slate-300 bg-white hover:border-brand-500',
-                !v.inStock && 'text-slate-400 line-through',
-              ]"
-              @click="selectedId = v.id"
-            >
-              {{ v.title }}
-            </button>
-          </div>
-        </div>
-
-        <div v-if="selected" class="flex flex-wrap items-center gap-3 text-sm">
-          <span
-            class="badge"
-            :class="
-              selected.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
-            "
-          >
-            {{ selected.inStock ? 'موجود' : 'ناموجود' }}
-          </span>
-          <span v-if="selected.sku" class="text-xs text-slate-500">
-            کد محصول: <span dir="ltr">{{ selected.sku }}</span>
-          </span>
-        </div>
-
-        <!-- دکمه‌ی «افزودن به سبد خرید» در روز ۱۰ اینجا اضافه می‌شود -->
-        <AddToCart :variant="selected" />
-
-        <section v-if="product.description" class="space-y-2 border-t border-slate-200 pt-5">
-          <h2 class="text-lg font-bold">توضیحات</h2>
+        <section v-if="product.description" class="card space-y-2 !p-5 sm:!p-6">
+          <h2 class="text-lg font-bold">توضیحات محصول</h2>
           <p class="whitespace-pre-line leading-8 text-slate-700">{{ product.description }}</p>
         </section>
       </div>
     </div>
 
-    <section v-if="related.length" class="space-y-4">
-      <h2 class="text-xl font-bold">محصولات مرتبط</h2>
+    <section v-if="related.length" class="space-y-5">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="flex items-center gap-3 text-xl font-extrabold sm:text-2xl">
+          <span class="h-6 w-1.5 rounded-full bg-brand-600" aria-hidden="true" />
+          محصولات مرتبط
+        </h2>
+        <NuxtLink
+          v-if="product.category"
+          :to="`/categories/${encodeURIComponent(product.category.slug)}`"
+          class="flex items-center gap-1 text-sm font-medium text-brand-700 transition hover:gap-2"
+        >
+          مشاهده‌ی همه
+          <StoreIcon name="chevronLeft" :size="16" />
+        </NuxtLink>
+      </div>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <ProductCard v-for="p in related" :key="p.id" :product="p" />
       </div>

@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { VariantDto } from '@myapp/shared-types';
 
-const props = defineProps<{ variant: VariantDto | undefined }>();
+const props = defineProps<{
+  variant: VariantDto | undefined;
+  /** در موبایل، ردیف خرید به پایین صفحه می‌چسبد */
+  sticky?: boolean;
+}>();
 
 const MAX = 20;
 const { cart, busy, add } = useCart();
@@ -37,47 +41,62 @@ async function submit() {
 </script>
 
 <template>
-  <div class="space-y-3">
-    <button v-if="!variant?.inStock" type="button" class="btn btn-secondary w-full" disabled>
+  <div
+    class="space-y-3"
+    :class="
+      sticky
+        ? 'max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:border-t max-md:border-slate-200 max-md:bg-white/95 max-md:p-3 max-md:shadow-[0_-4px_16px_rgb(15_23_42/0.08)] max-md:backdrop-blur'
+        : ''
+    "
+  >
+    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
+
+    <p
+      v-else-if="added"
+      class="flex items-center justify-between gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+      role="status"
+    >
+      <span class="flex items-center gap-1.5">
+        <StoreIcon name="check" :size="16" />
+        به سبد خرید اضافه شد.
+      </span>
+      <NuxtLink to="/cart" class="font-bold underline">مشاهده‌ی سبد</NuxtLink>
+    </p>
+
+    <button v-if="!variant?.inStock" type="button" class="btn btn-secondary btn-lg w-full" disabled>
       ناموجود
     </button>
 
-    <div v-else class="flex flex-wrap items-center gap-3">
-      <div class="flex items-center rounded-lg border border-slate-300 bg-white">
+    <div v-else class="flex items-center gap-3">
+      <div class="flex items-center rounded-xl border border-slate-300 bg-white">
         <button
           type="button"
-          class="size-10 text-lg hover:text-brand-700 disabled:opacity-40"
-          :disabled="quantity <= 1"
-          aria-label="کم کردن"
-          @click="quantity--"
-        >
-          −
-        </button>
-        <span class="w-10 text-center text-sm font-medium" aria-live="polite">{{ formatNumber(quantity) }}</span>
-        <button
-          type="button"
-          class="size-10 text-lg hover:text-brand-700 disabled:opacity-40"
+          class="grid size-11 place-items-center rounded-s-xl text-slate-600 transition hover:bg-slate-50 hover:text-brand-700 disabled:opacity-40"
           :disabled="quantity >= MAX"
           aria-label="زیاد کردن"
           @click="quantity++"
         >
-          +
+          <StoreIcon name="plus" :size="18" />
+        </button>
+        <span class="w-10 text-center text-sm font-bold" aria-live="polite">{{ formatNumber(quantity) }}</span>
+        <button
+          type="button"
+          class="grid size-11 place-items-center rounded-e-xl text-slate-600 transition hover:bg-slate-50 hover:text-brand-700 disabled:opacity-40"
+          :disabled="quantity <= 1"
+          aria-label="کم کردن"
+          @click="quantity--"
+        >
+          <StoreIcon name="minus" :size="18" />
         </button>
       </div>
 
-      <button type="button" class="btn btn-primary min-w-48 flex-1" :disabled="busy" @click="submit">
+      <button type="button" class="btn btn-primary btn-lg min-w-0 flex-1" :disabled="busy" @click="submit">
+        <StoreIcon name="cart" :size="20" />
         {{ busy ? 'در حال افزودن…' : 'افزودن به سبد خرید' }}
       </button>
     </div>
 
-    <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
-
-    <p v-else-if="added" class="text-sm text-emerald-700" role="status">
-      به سبد خرید اضافه شد.
-      <NuxtLink to="/cart" class="font-medium underline">مشاهده‌ی سبد</NuxtLink>
-    </p>
-
-    <p v-else-if="inCart > 0" class="text-xs text-slate-500">
+    <p v-if="inCart > 0 && !added && !error" class="text-xs text-slate-500">
       {{ formatNumber(inCart) }} عدد از این کالا در سبد شما هست.
     </p>
   </div>
