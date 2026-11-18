@@ -8,7 +8,14 @@ import type {
   StoredBlock,
 } from '@myapp/shared-types';
 import { onBeforeRouteLeave } from 'vue-router';
+import type { IconName } from '~/components/AppIcon.vue';
 import type { BlockType } from '~/utils/blocks';
+
+const BLOCK_ICON: Record<BlockType, IconName> = {
+  hero: 'image',
+  'product-grid': 'products',
+  'rich-text': 'pages',
+};
 
 const route = useRoute();
 const api = useApi();
@@ -241,52 +248,70 @@ useHead({ title: () => `ویرایش صفحه: ${title.value || slug}` });
 </script>
 
 <template>
-  <div class="max-w-4xl space-y-6 pb-24">
-    <header class="space-y-1">
-      <NuxtLink to="/pages" class="text-sm text-slate-500 hover:text-brand-600">→ صفحات</NuxtLink>
-      <div class="flex flex-wrap items-center gap-3">
-        <h1 class="text-2xl font-extrabold">{{ slug === 'home' ? 'صفحه‌ی اصلی' : `صفحه: ${slug}` }}</h1>
+  <div class="max-w-4xl space-y-6">
+    <PageHeader
+      :title="slug === 'home' ? 'صفحه‌ی اصلی' : `صفحه: ${slug}`"
+      back-to="/pages"
+      back-label="صفحات"
+    >
+      <template #meta>
         <span v-if="dirty" class="badge bg-amber-100 text-amber-700">تغییرات ذخیره‌نشده</span>
         <span v-else-if="page?.hasUnpublishedChanges" class="badge bg-sky-100 text-sky-700">پیش‌نویس منتشرنشده</span>
         <span v-else-if="page?.publishedAt" class="badge bg-emerald-100 text-emerald-700">منتشرشده</span>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="error" class="card text-red-700">{{ apiErrorMessage(error) }}</p>
+    <p v-if="error" class="alert-error">{{ apiErrorMessage(error) }}</p>
 
     <template v-else>
-      <p v-if="isDefaultHome" class="rounded-2xl bg-sky-50 p-4 text-sm text-sky-800">
+      <p v-if="isDefaultHome" class="flex items-start gap-2 rounded-xl bg-sky-50 p-4 text-sm text-sky-800">
+        <AppIcon name="info" :size="18" class="mt-0.5 shrink-0" />
         این صفحه‌ی اصلی پیش‌فرض است. با ذخیره‌ی تغییرات، صفحه‌ی اصلی خودتان ساخته می‌شود و با «انتشار» جای پیش‌فرض را می‌گیرد.
       </p>
-      <p v-else-if="isNew" class="rounded-2xl bg-sky-50 p-4 text-sm text-sky-800">
+      <p v-else-if="isNew" class="flex items-start gap-2 rounded-xl bg-sky-50 p-4 text-sm text-sky-800">
+        <AppIcon name="info" :size="18" class="mt-0.5 shrink-0" />
         این صفحه هنوز ساخته نشده است. بلاک‌ها را بچینید و ذخیره کنید.
       </p>
 
-      <section class="card space-y-2">
+      <FormSection title="عنوان صفحه">
         <label class="block">
-          <span class="label">عنوان صفحه</span>
-          <input v-model="title" class="input" maxlength="120" />
+          <span class="sr-only">عنوان صفحه</span>
+          <input v-model="title" class="input" maxlength="120" placeholder="مثلاً: درباره‌ی ما" />
         </label>
-        <p v-if="titleError" class="text-sm text-red-700">{{ titleError }}</p>
-      </section>
+        <p v-if="titleError" class="-mt-2 text-sm text-red-700">{{ titleError }}</p>
+      </FormSection>
 
-      <section v-if="validation.global.length || serverErrors.length" class="rounded-2xl border border-red-200 bg-red-50 p-4" role="alert">
+      <section
+        v-if="validation.global.length || serverErrors.length"
+        class="rounded-2xl border border-red-200 bg-red-50 p-4"
+        role="alert"
+      >
         <ul class="list-disc space-y-1 ps-5 text-sm text-red-700">
           <li v-for="m in [...validation.global, ...serverErrors]" :key="m">{{ m }}</li>
         </ul>
       </section>
 
       <!-- بلاک‌ها -->
-      <section class="space-y-3">
-        <p v-if="!blocks.length" class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-          هنوز بلاکی ندارید. از پایین یک بلاک اضافه کنید.
-        </p>
+      <section class="space-y-3" aria-label="بلاک‌های صفحه">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold">بلاک‌ها</h2>
+          <span class="badge bg-slate-100 text-slate-600">
+            {{ formatNumber(blocks.length) }} از {{ formatNumber(MAX_BLOCKS) }}
+          </span>
+        </div>
+
+        <EmptyState
+          v-if="!blocks.length"
+          icon="pages"
+          title="هنوز بلاکی ندارید"
+          description="صفحه از بلاک‌ها ساخته می‌شود؛ از بخش «افزودن بلاک» پایین‌تر شروع کنید."
+        />
 
         <article
           v-for="(b, i) in blocks"
           :key="b.id"
-          class="card space-y-4"
-          :class="validation.byIndex[i] ? 'border-red-300' : ''"
+          class="card space-y-4 !p-4"
+          :class="validation.byIndex[i] ? '!border-red-300' : ''"
         >
           <header class="flex items-center justify-between gap-2">
             <button
@@ -295,16 +320,56 @@ useHead({ title: () => `ویرایش صفحه: ${title.value || slug}` });
               :aria-expanded="isOpen(b.id)"
               @click="toggle(b.id)"
             >
-              <span class="badge bg-brand-50 text-brand-700">{{ formatNumber(i + 1) }}</span>
-              <span class="font-medium">{{ blockLabel(b.type) }}</span>
-              <span class="truncate text-sm text-slate-500">{{ blockSummary(b) }}</span>
+              <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                <AppIcon :name="BLOCK_ICON[b.type]" :size="18" />
+              </span>
+              <span class="min-w-0">
+                <span class="block text-sm font-bold">
+                  <span class="text-slate-400">{{ formatNumber(i + 1) }}.</span> {{ blockLabel(b.type) }}
+                </span>
+                <span class="block truncate text-xs text-slate-500">{{ blockSummary(b) }}</span>
+              </span>
+              <AppIcon
+                name="chevronDown"
+                :size="16"
+                class="ms-auto shrink-0 text-slate-400 transition"
+                :class="isOpen(b.id) ? 'rotate-180' : ''"
+              />
             </button>
 
-            <div class="flex shrink-0 gap-1">
-              <button type="button" class="btn btn-secondary btn-sm" :disabled="i === 0" aria-label="انتقال به بالا" @click="move(i, -1)">↑</button>
-              <button type="button" class="btn btn-secondary btn-sm" :disabled="i === blocks.length - 1" aria-label="انتقال به پایین" @click="move(i, 1)">↓</button>
-              <button type="button" class="btn btn-secondary btn-sm" aria-label="تکثیر" @click="duplicate(i)">⧉</button>
-              <button type="button" class="btn btn-secondary btn-sm text-red-600" aria-label="حذف" @click="removeBlock(i)">✕</button>
+            <div class="flex shrink-0 gap-0.5">
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm !px-2"
+                :disabled="i === 0"
+                title="انتقال به بالا"
+                aria-label="انتقال به بالا"
+                @click="move(i, -1)"
+              >
+                <AppIcon name="arrowUp" :size="16" />
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm !px-2"
+                :disabled="i === blocks.length - 1"
+                title="انتقال به پایین"
+                aria-label="انتقال به پایین"
+                @click="move(i, 1)"
+              >
+                <AppIcon name="arrowDown" :size="16" />
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm !px-2" title="تکثیر" aria-label="تکثیر" @click="duplicate(i)">
+                <AppIcon name="copy" :size="16" />
+              </button>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm !px-2 text-red-600 hover:!bg-red-50"
+                title="حذف"
+                aria-label="حذف"
+                @click="removeBlock(i)"
+              >
+                <AppIcon name="trash" :size="16" />
+              </button>
             </div>
           </header>
 
@@ -312,34 +377,39 @@ useHead({ title: () => `ویرایش صفحه: ${title.value || slug}` });
             <li v-for="m in validation.byIndex[i]" :key="m">{{ m }}</li>
           </ul>
 
-          <BlockEditor
-            v-if="isOpen(b.id)"
-            :model-value="b"
-            :categories="categoryOptions"
-            :image="imageOf(b)"
-            @update:model-value="(v) => (blocks[i] = v)"
-            @choose-image="chooseImage(b.id)"
-            @clear-image="clearImage(b.id)"
-          />
+          <div v-if="isOpen(b.id)" class="border-t border-slate-100 pt-4">
+            <BlockEditor
+              :model-value="b"
+              :categories="categoryOptions"
+              :image="imageOf(b)"
+              @update:model-value="(v) => (blocks[i] = v)"
+              @choose-image="chooseImage(b.id)"
+              @clear-image="clearImage(b.id)"
+            />
+          </div>
         </article>
       </section>
 
       <!-- افزودن بلاک -->
-      <section class="card space-y-3">
-        <h2 class="text-lg font-bold">افزودن بلاک</h2>
+      <FormSection title="افزودن بلاک">
         <div class="grid gap-3 sm:grid-cols-3">
           <button
             v-for="t in BLOCK_TYPES"
             :key="t.type"
             type="button"
-            class="rounded-xl border border-slate-200 p-3 text-start transition hover:border-brand-500 hover:bg-brand-50"
+            class="group rounded-xl border-2 border-dashed border-slate-200 p-4 text-start transition hover:border-brand-500 hover:bg-brand-50"
             @click="addBlock(t.type)"
           >
-            <div class="font-medium">+ {{ t.label }}</div>
-            <div class="text-xs text-slate-500">{{ t.description }}</div>
+            <span
+              class="mb-2 grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-500 transition group-hover:bg-white group-hover:text-brand-600"
+            >
+              <AppIcon :name="BLOCK_ICON[t.type]" :size="18" />
+            </span>
+            <span class="block font-bold">{{ t.label }}</span>
+            <span class="block text-xs leading-5 text-slate-500">{{ t.description }}</span>
           </button>
         </div>
-      </section>
+      </FormSection>
 
       <p v-if="previewUrl" class="text-sm">
         پیوند پیش‌نمایش (۳۰ دقیقه معتبر):
@@ -347,25 +417,35 @@ useHead({ title: () => `ویرایش صفحه: ${title.value || slug}` });
       </p>
 
       <!-- نوار عملیات -->
-      <div class="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:start-60">
-        <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2">
+      <div
+        class="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur"
+        role="region"
+        aria-label="عملیات صفحه"
+      >
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm text-red-600 hover:!bg-red-50"
+          :disabled="busy || (!dirty && !page?.draftBlocks)"
+          @click="discard"
+        >
+          دور انداختن تغییرات
+        </button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn btn-secondary" :disabled="busy" @click="openPreview">
+            <AppIcon name="external" :size="16" />
+            پیش‌نمایش
+          </button>
+          <button type="button" class="btn btn-secondary" :disabled="busy || !dirty" @click="save">
+            {{ saving ? 'در حال ذخیره…' : 'ذخیره‌ی پیش‌نویس' }}
+          </button>
           <button
             type="button"
-            class="btn btn-secondary btn-sm text-red-600"
-            :disabled="busy || (!dirty && !page?.draftBlocks)"
-            @click="discard"
+            class="btn btn-primary"
+            :disabled="busy || !hasUnpublished || !blocks.length"
+            @click="publish"
           >
-            دور انداختن تغییرات
+            {{ publishing ? 'در حال انتشار…' : 'انتشار' }}
           </button>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="btn btn-secondary" :disabled="busy" @click="openPreview">پیش‌نمایش</button>
-            <button type="button" class="btn btn-secondary" :disabled="busy || !dirty" @click="save">
-              {{ saving ? 'در حال ذخیره…' : 'ذخیره‌ی پیش‌نویس' }}
-            </button>
-            <button type="button" class="btn btn-primary" :disabled="busy || !hasUnpublished || !blocks.length" @click="publish">
-              {{ publishing ? 'در حال انتشار…' : 'انتشار' }}
-            </button>
-          </div>
         </div>
       </div>
     </template>

@@ -54,9 +54,9 @@ const missingCategory = computed(() => {
             />
             <div
               v-else
-              class="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400"
+              class="grid size-14 place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-slate-300"
             >
-              بدون تصویر
+              <AppIcon name="image" :size="22" />
             </div>
             <div class="flex gap-2">
               <button type="button" class="btn btn-secondary btn-sm" @click="emit('choose-image')">
@@ -65,7 +65,7 @@ const missingCategory = computed(() => {
               <button
                 v-if="block.props.imageId"
                 type="button"
-                class="btn btn-secondary btn-sm"
+                class="btn btn-ghost btn-sm text-red-600"
                 @click="emit('clear-image')"
               >
                 حذف
@@ -89,9 +89,7 @@ const missingCategory = computed(() => {
             maxlength="500"
             placeholder="/products"
           />
-          <span class="mt-1 block text-xs text-slate-500"
-            >مسیر داخلی (مثل /products یا /p/about) یا لینک https</span
-          >
+          <span class="hint">مسیر داخلی (مثل /products یا /p/about) یا لینک https</span>
         </label>
       </div>
     </template>
