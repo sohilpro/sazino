@@ -114,37 +114,62 @@ async function submit() {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-extrabold">تکمیل خرید</h1>
+    <div class="space-y-4">
+      <h1 class="text-2xl font-extrabold sm:text-3xl">تکمیل خرید</h1>
+      <CheckoutSteps :current="2" />
+    </div>
 
-    <p v-if="!ready || loading" class="card text-center text-slate-500">در حال بارگذاری…</p>
-    <p v-else-if="loadError" class="card text-center text-red-700">{{ loadError }}</p>
+    <div v-if="!ready || loading" class="grid gap-6 lg:grid-cols-3" aria-busy="true">
+      <div class="space-y-4 lg:col-span-2">
+        <div v-for="n in 3" :key="n" class="h-40 animate-pulse rounded-2xl bg-slate-200/70" />
+      </div>
+      <div class="h-72 animate-pulse rounded-2xl bg-slate-200/70" />
+    </div>
+    <p v-else-if="loadError" class="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">
+      {{ loadError }}
+    </p>
 
-    <div v-else-if="!cart || cart.items.length === 0" class="card text-center">
-      <p class="mb-4 text-slate-500">سبد خرید شما خالی است.</p>
+    <div
+      v-else-if="!cart || cart.items.length === 0"
+      class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center"
+    >
+      <span class="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+        <StoreIcon name="cart" :size="28" />
+      </span>
+      <p class="mb-4 font-medium text-slate-700">سبد خرید شما خالی است.</p>
       <NuxtLink to="/products" class="btn btn-primary">مشاهده‌ی محصولات</NuxtLink>
     </div>
 
     <div v-else class="grid gap-6 lg:grid-cols-3">
       <div class="space-y-6 lg:col-span-2">
         <section class="card space-y-3">
-          <h2 class="text-lg font-bold">نشانی تحویل</h2>
+          <h2 class="flex items-center gap-2 text-lg font-bold">
+            <StoreIcon name="mapPin" :size="20" class="text-brand-600" />
+            نشانی تحویل
+          </h2>
 
           <template v-if="!showAddressForm">
             <label
               v-for="a in addresses"
               :key="a.id"
-              class="flex cursor-pointer gap-3 rounded-xl border p-3"
-              :class="a.id === addressId ? 'border-brand-600 bg-brand-50' : 'border-slate-200'"
+              class="flex cursor-pointer gap-3 rounded-xl border-2 p-3.5 transition"
+              :class="a.id === addressId ? 'border-brand-600 bg-brand-50' : 'border-slate-200 hover:border-slate-300'"
             >
-              <input v-model="addressId" type="radio" name="address" :value="a.id" class="mt-1" />
+              <input v-model="addressId" type="radio" name="address" :value="a.id" class="mt-1.5 size-4 accent-brand-600" />
               <span class="text-sm leading-7">
-                <b>{{ a.recipientName }}</b> · <span dir="ltr">{{ a.recipientPhone }}</span><br />
+                <b>{{ a.recipientName }}</b> · <span dir="ltr">{{ a.recipientPhone }}</span>
+                <span v-if="a.isDefault" class="badge ms-2 bg-slate-100 text-slate-600">پیش‌فرض</span><br />
                 {{ a.province }}، {{ a.city }}، {{ a.address }}<br />
                 کد پستی: <span dir="ltr">{{ a.postalCode }}</span>
               </span>
             </label>
-            <button type="button" class="text-sm text-brand-700 hover:underline" @click="showAddressForm = true">
-              + افزودن نشانی جدید
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-300 py-3 text-sm font-medium text-brand-700 transition hover:border-brand-500 hover:bg-brand-50"
+              @click="showAddressForm = true"
+            >
+              <StoreIcon name="plus" :size="16" />
+              افزودن نشانی جدید
             </button>
           </template>
 
@@ -159,18 +184,21 @@ async function submit() {
         </section>
 
         <section class="card space-y-3">
-          <h2 class="text-lg font-bold">روش ارسال</h2>
-          <p v-if="!methods.length" class="text-sm text-amber-700">
+          <h2 class="flex items-center gap-2 text-lg font-bold">
+            <StoreIcon name="truck" :size="20" class="text-brand-600" />
+            روش ارسال
+          </h2>
+          <p v-if="!methods.length" class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
             این فروشگاه هنوز روش ارسالی تعریف نکرده است.
           </p>
           <label
             v-for="m in methods"
             :key="m.id"
-            class="flex cursor-pointer items-start justify-between gap-3 rounded-xl border p-3"
-            :class="m.id === methodId ? 'border-brand-600 bg-brand-50' : 'border-slate-200'"
+            class="flex cursor-pointer items-start justify-between gap-3 rounded-xl border-2 p-3.5 transition"
+            :class="m.id === methodId ? 'border-brand-600 bg-brand-50' : 'border-slate-200 hover:border-slate-300'"
           >
             <span class="flex gap-3">
-              <input v-model="methodId" type="radio" name="method" :value="m.id" class="mt-1" />
+              <input v-model="methodId" type="radio" name="method" :value="m.id" class="mt-1.5 size-4 accent-brand-600" />
               <span class="text-sm">
                 <b>{{ m.title }}</b>
                 <span v-if="m.description" class="block text-xs text-slate-500">{{ m.description }}</span>
@@ -179,27 +207,38 @@ async function submit() {
                 </span>
               </span>
             </span>
-            <span class="shrink-0 text-sm font-medium">{{ m.fee ? formatPrice(m.fee) : 'رایگان' }}</span>
+            <span class="shrink-0 text-sm font-bold" :class="!m.fee && 'text-emerald-700'">
+              {{ m.fee ? formatPrice(m.fee) : 'رایگان' }}
+            </span>
           </label>
         </section>
 
         <section class="card space-y-2">
           <h2 class="text-lg font-bold">توضیحات سفارش (اختیاری)</h2>
-          <textarea v-model="note" class="input" rows="3" maxlength="500" />
+          <textarea v-model="note" class="input" rows="3" maxlength="500" placeholder="مثلاً: لطفاً قبل از ارسال تماس بگیرید" />
         </section>
       </div>
 
       <aside>
-        <div class="card space-y-4 lg:sticky lg:top-24">
+        <div class="card space-y-4 lg:sticky lg:top-32">
           <h2 class="text-lg font-bold">خلاصه‌ی سفارش</h2>
 
-          <ul class="space-y-2 text-sm">
-            <li v-for="item in cart.items" :key="item.variantId" class="flex justify-between gap-3">
-              <span class="min-w-0 truncate">
-                {{ item.productTitle }}
-                <span class="text-slate-400">× {{ formatNumber(item.quantity) }}</span>
+          <ul class="space-y-3 text-sm">
+            <li v-for="item in cart.items" :key="item.variantId" class="flex items-center gap-3">
+              <img
+                v-if="item.imageUrl"
+                :src="item.imageUrl"
+                alt=""
+                class="size-12 shrink-0 rounded-lg border border-slate-100 object-cover"
+              />
+              <span v-else class="grid size-12 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-300">
+                <StoreIcon name="box" :size="20" />
               </span>
-              <span class="shrink-0">{{ formatPrice(item.lineTotal) }}</span>
+              <span class="min-w-0 flex-1">
+                <span class="line-clamp-1 block">{{ item.productTitle }}</span>
+                <span class="text-xs text-slate-400">× {{ formatNumber(item.quantity) }}</span>
+              </span>
+              <span class="shrink-0 font-medium">{{ formatPrice(item.lineTotal) }}</span>
             </li>
           </ul>
 
@@ -233,11 +272,12 @@ async function submit() {
             </NuxtLink>
           </p>
 
-          <button type="button" class="btn btn-primary w-full" :disabled="!canSubmit" @click="submit">
+          <button type="button" class="btn btn-primary btn-lg w-full" :disabled="!canSubmit" @click="submit">
             {{ submitting ? 'در حال ثبت…' : 'ثبت سفارش' }}
           </button>
-          <p class="text-xs text-slate-500">
-            پس از ثبت، موجودی کالاها ۳۰ دقیقه برای شما نگه داشته می‌شود.
+          <p class="flex items-start gap-1.5 text-xs leading-5 text-slate-500">
+            <StoreIcon name="lock" :size="14" class="mt-0.5 shrink-0" />
+            پس از ثبت، موجودی کالاها ۳۰ دقیقه برای شما نگه داشته می‌شود و پرداخت در درگاه امن انجام می‌شود.
           </p>
         </div>
       </aside>

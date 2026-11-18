@@ -13,16 +13,22 @@ const MESSAGES = {
     title: 'پرداخت انجام نشد',
     text: 'پرداخت لغو شد یا ناموفق بود. اگر مبلغی از حساب شما کسر شده، طبق قوانین درگاه بازگردانده می‌شود. می‌توانید دوباره پرداخت کنید.',
     tone: 'text-red-700',
+    icon: 'alert',
+    bubble: 'bg-red-50 text-red-600',
   },
   PENDING_CHECK: {
     title: 'نتیجه‌ی پرداخت در حال بررسی است',
     text: 'ارتباط با درگاه برقرار نشد و نتیجه هنوز مشخص نیست. چند دقیقه بعد وضعیت سفارش را ببینید؛ نیازی به پرداخت دوباره نیست.',
     tone: 'text-amber-700',
+    icon: 'clock',
+    bubble: 'bg-amber-50 text-amber-600',
   },
   NOT_PAYABLE: {
     title: 'این سفارش دیگر قابل پرداخت نیست',
     text: 'سفارش لغو شده یا مهلت آن تمام شده است. اگر مبلغی کسر شده، طبق قوانین درگاه به حساب شما برمی‌گردد.',
     tone: 'text-slate-700',
+    icon: 'alert',
+    bubble: 'bg-slate-100 text-slate-500',
   },
 } as const;
 
@@ -56,25 +62,36 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg">
-    <div class="card space-y-4 text-center">
+  <div class="mx-auto max-w-lg space-y-6">
+    <CheckoutSteps :current="3" />
+
+    <div class="card space-y-5 !p-8 text-center">
       <template v-if="state === 'loading'">
-        <h1 class="text-xl font-extrabold">در حال بررسی پرداخت…</h1>
-        <p class="text-sm text-slate-500">لطفاً صفحه را نبندید.</p>
+        <span class="mx-auto block size-14 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600" aria-hidden="true" />
+        <div role="status">
+          <h1 class="text-xl font-extrabold">در حال بررسی پرداخت…</h1>
+          <p class="mt-1 text-sm text-slate-500">لطفاً صفحه را نبندید.</p>
+        </div>
       </template>
 
       <template v-else-if="state === 'error'">
+        <span class="mx-auto grid size-14 place-items-center rounded-full bg-red-50 text-red-600">
+          <StoreIcon name="alert" :size="28" />
+        </span>
         <h1 class="text-xl font-extrabold text-red-700">خطا</h1>
-        <p class="text-sm text-slate-600">{{ error }}</p>
-        <NuxtLink to="/orders" class="btn btn-primary">سفارش‌های من</NuxtLink>
+        <p class="text-sm leading-7 text-slate-600">{{ error }}</p>
+        <NuxtLink to="/orders" class="btn btn-primary btn-lg">سفارش‌های من</NuxtLink>
       </template>
 
       <template v-else-if="result && result.outcome !== 'PAID'">
+        <span class="mx-auto grid size-14 place-items-center rounded-full" :class="MESSAGES[result.outcome].bubble">
+          <StoreIcon :name="MESSAGES[result.outcome].icon" :size="28" />
+        </span>
         <h1 class="text-xl font-extrabold" :class="MESSAGES[result.outcome].tone">
           {{ MESSAGES[result.outcome].title }}
         </h1>
         <p class="text-sm leading-7 text-slate-600">{{ MESSAGES[result.outcome].text }}</p>
-        <NuxtLink :to="`/orders/${result.orderNumber}`" class="btn btn-primary">مشاهده‌ی سفارش</NuxtLink>
+        <NuxtLink :to="`/orders/${result.orderNumber}`" class="btn btn-primary btn-lg">مشاهده‌ی سفارش</NuxtLink>
       </template>
     </div>
   </div>
