@@ -1,0 +1,996 @@
+diff --git a/apps/dashboard/app/components/AppIcon.vue b/apps/dashboard/app/components/AppIcon.vue
+index d50979b..1e54f61 100644
+--- a/apps/dashboard/app/components/AppIcon.vue
++++ b/apps/dashboard/app/components/AppIcon.vue
+@@ -29,6 +29,9 @@ const PATHS = {
+   truck: ['M3 6h11v10H3zM14 9h4l3 3v4h-7', 'M7 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM17 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z'],
+   user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z', 'M4 20a8 8 0 0 1 16 0'],
+   mapPin: ['M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z', 'M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z'],
++  copy: ['M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1Z', 'M16 9V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3'],
++  info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', 'M12 11v5M12 8h.01'],
++  lock: ['M6 11h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1Z', 'M8 11V8a4 4 0 0 1 8 0v3'],
+   sparkle: ['M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z'],
+ } as const;
+ 
+diff --git a/apps/dashboard/app/components/SettingsTabs.vue b/apps/dashboard/app/components/SettingsTabs.vue
+new file mode 100644
+index 0000000..11bdf15
+--- /dev/null
++++ b/apps/dashboard/app/components/SettingsTabs.vue
+@@ -0,0 +1,31 @@
++<script setup lang="ts">
++import type { IconName } from '~/components/AppIcon.vue';
++
++const route = useRoute();
++
++const tabs: { to: string; label: string; icon: IconName }[] = [
++  { to: '/settings/theme', label: 'ظاهر فروشگاه', icon: 'theme' },
++  { to: '/settings/payment', label: 'درگاه پرداخت', icon: 'payment' },
++  { to: '/settings/domains', label: 'دامنه‌ی اختصاصی', icon: 'domain' },
++  { to: '/settings/plan', label: 'پلن و مصرف', icon: 'plan' },
++];
++</script>
++
++<template>
++  <nav class="flex gap-1 overflow-x-auto border-b border-slate-200" aria-label="تنظیمات">
++    <NuxtLink
++      v-for="t in tabs"
++      :key="t.to"
++      :to="t.to"
++      class="-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition"
++      :class="
++        route.path === t.to
++          ? 'border-brand-600 font-semibold text-brand-700'
++          : 'border-transparent text-slate-500 hover:text-slate-800'
++      "
++    >
++      <AppIcon :name="t.icon" :size="16" />
++      {{ t.label }}
++    </NuxtLink>
++  </nav>
++</template>
+diff --git a/apps/dashboard/app/pages/settings/domains.vue b/apps/dashboard/app/pages/settings/domains.vue
+index 5c81206..125078c 100644
+--- a/apps/dashboard/app/pages/settings/domains.vue
++++ b/apps/dashboard/app/pages/settings/domains.vue
+@@ -16,10 +16,12 @@ const adding = ref(false);
+ const busy = ref<string | null>(null);
+ const results = reactive<Record<string, DomainVerifyDto>>({});
+ 
++const atLimit = computed(() => data.value?.limit != null && data.value.items.length >= data.value.limit);
++
+ const STATUS = {
+-  PENDING: { label: 'در انتظار تأیید', cls: 'bg-amber-100 text-amber-700' },
+-  VERIFIED: { label: 'فعال', cls: 'bg-emerald-100 text-emerald-700' },
+-  FAILED: { label: 'غیرفعال (رکورد TXT پیدا نشد)', cls: 'bg-red-100 text-red-700' },
++  PENDING: { label: 'در انتظار تأیید', cls: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
++  VERIFIED: { label: 'فعال', cls: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
++  FAILED: { label: 'غیرفعال (رکورد TXT پیدا نشد)', cls: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+ } as const;
+ 
+ async function add() {
+@@ -85,63 +87,59 @@ async function copy(text: string) {
+ </script>
+ 
+ <template>
+-  <div class="max-w-4xl space-y-6">
+-    <header>
+-      <h1 class="text-2xl font-extrabold">دامنه‌ی اختصاصی</h1>
+-      <p class="text-sm text-slate-500">
+-        فروشگاهتان را با دامنه‌ی خودتان (مثل shop.example.com) منتشر کنید.
+-      </p>
+-    </header>
++  <div class="max-w-5xl space-y-6">
++    <PageHeader
++      title="تنظیمات"
++      subtitle="فروشگاهتان را با دامنه‌ی خودتان (مثل shop.example.com) منتشر کنید."
++    />
++    <SettingsTabs />
+ 
+-    <p v-if="error" class="card text-red-700">{{ apiErrorMessage(error) }}</p>
++    <p v-if="error" class="alert-error">{{ apiErrorMessage(error) }}</p>
+ 
+     <template v-else-if="data">
+-      <form
+-        v-if="canManage"
+-        class="card flex flex-wrap items-end gap-3"
+-        novalidate
+-        @submit.prevent="add"
+-      >
+-        <label class="min-w-64 flex-1">
+-          <span class="label">دامنه‌ی جدید</span>
+-          <input
+-            v-model="hostname"
+-            class="input"
+-            dir="ltr"
+-            maxlength="300"
+-            placeholder="shop.example.com"
+-          />
+-        </label>
+-        <button
+-          type="submit"
+-          class="btn btn-primary"
+-          :disabled="adding || (data.limit !== null && data.items.length >= data.limit)"
+-        >
+-          {{ adding ? 'در حال افزودن…' : 'افزودن' }}
+-        </button>
+-        <p v-if="data.limit === 0" class="w-full text-sm text-amber-700">
++      <form v-if="canManage" class="card space-y-3" novalidate @submit.prevent="add">
++        <div class="flex flex-wrap items-end gap-3">
++          <label class="min-w-64 flex-1">
++            <span class="label">دامنه‌ی جدید</span>
++            <input
++              v-model="hostname"
++              class="input tech"
++              dir="ltr"
++              maxlength="300"
++              placeholder="shop.example.com"
++            />
++          </label>
++          <button type="submit" class="btn btn-primary" :disabled="adding || atLimit">
++            <AppIcon name="plus" :size="16" />
++            {{ adding ? 'در حال افزودن…' : 'افزودن دامنه' }}
++          </button>
++        </div>
++        <p v-if="data.limit === 0" class="alert-warn">
+           پلن فعلی شما دامنه‌ی اختصاصی ندارد؛
+           <NuxtLink to="/settings/plan" class="underline">پلن و مصرف</NuxtLink>
+         </p>
+-        <p v-else class="w-full text-xs text-slate-500">
++        <p v-else class="hint !mt-0">
+           {{ formatNumber(data.items.length) }} از
+-          {{ data.limit === null ? 'نامحدود' : formatNumber(data.limit) }} دامنه. برای دامنه‌ی اصلی
+-          و «www» هر کدام را جداگانه اضافه کنید.
++          {{ data.limit === null ? 'نامحدود' : formatNumber(data.limit) }} دامنه. برای دامنه‌ی اصلی و «www» هر
++          کدام را جداگانه اضافه کنید.
+         </p>
+       </form>
+ 
+-      <p
++      <EmptyState
+         v-if="!data.items.length"
+-        class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500"
+-      >
+-        هنوز دامنه‌ای اضافه نکرده‌اید.
+-      </p>
++        icon="domain"
++        title="هنوز دامنه‌ای اضافه نکرده‌اید"
++        description="دامنه‌ی خودتان را اضافه کنید، رکوردهای DNS را ثبت کنید و بعد تأیید را بزنید."
++      />
+ 
+       <article v-for="d in data.items" :key="d.id" class="card space-y-4">
+         <header class="flex flex-wrap items-center justify-between gap-3">
+           <div class="flex flex-wrap items-center gap-2">
+-            <h2 class="text-lg font-bold" dir="ltr">{{ d.hostname }}</h2>
+-            <span class="badge" :class="STATUS[d.status].cls">{{ STATUS[d.status].label }}</span>
++            <h2 class="tech text-lg font-bold">{{ d.hostname }}</h2>
++            <span class="badge gap-1.5" :class="STATUS[d.status].cls">
++              <span class="size-1.5 rounded-full" :class="STATUS[d.status].dot" />
++              {{ STATUS[d.status].label }}
++            </span>
+             <span v-if="d.isPrimary" class="badge bg-brand-100 text-brand-700">دامنه‌ی اصلی</span>
+           </div>
+           <div v-if="canManage" class="flex flex-wrap gap-2">
+@@ -153,6 +151,7 @@ async function copy(text: string) {
+               class="btn btn-secondary btn-sm"
+             >
+               مشاهده
++              <AppIcon name="external" :size="14" />
+             </a>
+             <button
+               v-if="d.status === 'VERIFIED' && !d.isPrimary"
+@@ -162,68 +161,88 @@ async function copy(text: string) {
+             >
+               دامنه‌ی اصلی شود
+             </button>
+-            <button type="button" class="btn btn-secondary btn-sm text-red-600" @click="remove(d)">
+-              حذف
++            <button
++              type="button"
++              class="btn btn-ghost btn-sm !px-2 text-red-600 hover:!bg-red-50"
++              title="حذف دامنه"
++              :aria-label="`حذف ${d.hostname}`"
++              @click="remove(d)"
++            >
++              <AppIcon name="trash" :size="16" />
+             </button>
+           </div>
+         </header>
+ 
+-        <p v-if="d.status === 'VERIFIED'" class="text-sm text-slate-600">
++        <p
++          v-if="d.status === 'VERIFIED'"
++          class="flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
++        >
++          <AppIcon name="check" :size="18" class="mt-0.5 shrink-0" />
+           این دامنه فعال است. گواهی SSL در اولین بازدید به‌صورت خودکار صادر می‌شود (چند ثانیه).
+         </p>
+ 
+         <template v-else>
+           <p class="text-sm leading-7 text-slate-600">
+-            این دو رکورد را در پنل DNS ثبت‌کننده‌ی دامنه (مثلاً Cloudflare یا پنل ثبت دامنه) اضافه
+-            کنید، سپس «بررسی» را بزنید. اعمال رکوردها ممکن است از چند دقیقه تا چند ساعت طول بکشد.
++            این رکوردها را در پنل DNS ثبت‌کننده‌ی دامنه (مثلاً Cloudflare یا پنل ثبت دامنه) اضافه کنید، سپس
++            «بررسی» را بزنید. اعمال رکوردها ممکن است از چند دقیقه تا چند ساعت طول بکشد.
+           </p>
+ 
+-          <div class="overflow-x-auto">
++          <div class="overflow-x-auto rounded-xl border border-slate-200">
+             <table class="w-full text-sm">
+-              <thead class="text-slate-500">
++              <thead class="bg-slate-50 text-xs text-slate-500">
+                 <tr>
+-                  <th class="px-2 py-2 text-start font-medium">نوع</th>
+-                  <th class="px-2 py-2 text-start font-medium">نام (Host)</th>
+-                  <th class="px-2 py-2 text-start font-medium">مقدار (Value)</th>
+-                  <th class="px-2 py-2" />
++                  <th class="px-3 py-2 text-start font-medium">نوع</th>
++                  <th class="px-3 py-2 text-start font-medium">نام (Host)</th>
++                  <th class="px-3 py-2 text-start font-medium">مقدار (Value)</th>
++                  <th class="px-3 py-2"><span class="sr-only">کپی</span></th>
+                 </tr>
+               </thead>
+-              <tbody class="divide-y divide-slate-100" dir="ltr">
++              <tbody class="tech divide-y divide-slate-100">
+                 <tr>
+-                  <td class="px-2 py-2 font-medium">TXT</td>
+-                  <td class="px-2 py-2 break-all">{{ d.dns.txtName }}</td>
+-                  <td class="px-2 py-2 break-all">{{ d.dns.txtValue }}</td>
+-                  <td class="px-2 py-2">
++                  <td class="px-3 py-2 font-bold">TXT</td>
++                  <td class="break-all px-3 py-2">{{ d.dns.txtName }}</td>
++                  <td class="break-all px-3 py-2">{{ d.dns.txtValue }}</td>
++                  <td class="px-3 py-2 text-end">
+                     <button
+                       type="button"
+-                      class="btn btn-secondary btn-sm"
++                      class="btn btn-ghost btn-sm !px-2"
++                      title="کپی مقدار"
++                      aria-label="کپی مقدار TXT"
+                       @click="copy(d.dns.txtValue)"
+                     >
+-                      کپی
++                      <AppIcon name="copy" :size="16" />
+                     </button>
+                   </td>
+                 </tr>
+                 <tr>
+-                  <td class="px-2 py-2 font-medium">CNAME</td>
+-                  <td class="px-2 py-2 break-all">{{ d.hostname }}</td>
+-                  <td class="px-2 py-2 break-all">{{ d.dns.cnameTarget }}</td>
+-                  <td class="px-2 py-2">
++                  <td class="px-3 py-2 font-bold">CNAME</td>
++                  <td class="break-all px-3 py-2">{{ d.hostname }}</td>
++                  <td class="break-all px-3 py-2">{{ d.dns.cnameTarget }}</td>
++                  <td class="px-3 py-2 text-end">
+                     <button
+                       type="button"
+-                      class="btn btn-secondary btn-sm"
++                      class="btn btn-ghost btn-sm !px-2"
++                      title="کپی مقدار"
++                      aria-label="کپی مقدار CNAME"
+                       @click="copy(d.dns.cnameTarget)"
+                     >
+-                      کپی
++                      <AppIcon name="copy" :size="16" />
+                     </button>
+                   </td>
+                 </tr>
+                 <tr v-for="ip in d.dns.addresses" :key="ip">
+-                  <td class="px-2 py-2 font-medium">A</td>
+-                  <td class="px-2 py-2">@</td>
+-                  <td class="px-2 py-2">{{ ip }}</td>
+-                  <td class="px-2 py-2">
+-                    <button type="button" class="btn btn-secondary btn-sm" @click="copy(ip)">
+-                      کپی
++                  <td class="px-3 py-2 font-bold">A</td>
++                  <td class="px-3 py-2">@</td>
++                  <td class="px-3 py-2">{{ ip }}</td>
++                  <td class="px-3 py-2 text-end">
++                    <button
++                      type="button"
++                      class="btn btn-ghost btn-sm !px-2"
++                      title="کپی مقدار"
++                      aria-label="کپی آدرس IP"
++                      @click="copy(ip)"
++                    >
++                      <AppIcon name="copy" :size="16" />
+                     </button>
+                   </td>
+                 </tr>
+@@ -231,28 +250,22 @@ async function copy(text: string) {
+             </table>
+           </div>
+ 
+-          <ul class="list-disc space-y-1 ps-5 text-xs leading-6 text-slate-500">
++          <ul class="list-disc space-y-1 rounded-lg bg-slate-50 py-3 pe-3 ps-8 text-xs leading-6 text-slate-500">
+             <li>
+-              برای زیردامنه (مثل shop.example.com یا www.example.com) از رکورد <b>CNAME</b> استفاده
+-              کنید.
++              برای زیردامنه (مثل shop.example.com یا www.example.com) از رکورد <b>CNAME</b> استفاده کنید.
+             </li>
+             <li>
+-              برای دامنه‌ی اصلی (example.com) CNAME مجاز نیست؛ از رکورد <b>A</b> (در صورت نمایش
+-              بالا) یا <b>ALIAS / ANAME / CNAME flattening</b> به همان مقدار CNAME استفاده کنید.
++              برای دامنه‌ی اصلی (example.com) CNAME مجاز نیست؛ از رکورد <b>A</b> (در صورت نمایش بالا) یا
++              <b>ALIAS / ANAME / CNAME flattening</b> به همان مقدار CNAME استفاده کنید.
+             </li>
+             <li>
+-              اگر از Cloudflare استفاده می‌کنید، تا پایان تأیید ابر نارنجی (Proxy) را خاموش
+-              (خاکستری) کنید.
++              اگر از Cloudflare استفاده می‌کنید، تا پایان تأیید ابر نارنجی (Proxy) را خاموش (خاکستری) کنید.
+             </li>
+           </ul>
+ 
+           <div v-if="canManage" class="flex flex-wrap items-center gap-3">
+-            <button
+-              type="button"
+-              class="btn btn-primary"
+-              :disabled="busy === d.id"
+-              @click="verify(d)"
+-            >
++            <button type="button" class="btn btn-primary" :disabled="busy === d.id" @click="verify(d)">
++              <AppIcon name="refresh" :size="16" :class="busy === d.id ? 'animate-spin' : ''" />
+               {{ busy === d.id ? 'در حال بررسی…' : 'بررسی' }}
+             </button>
+             <span v-if="d.lastCheckedAt" class="text-xs text-slate-500">
+@@ -260,38 +273,50 @@ async function copy(text: string) {
+             </span>
+           </div>
+ 
+-          <div v-if="results[d.id]?.checks" class="space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
+-            <p :class="results[d.id]!.checks!.txt.ok ? 'text-emerald-700' : 'text-red-700'">
+-              {{
+-                results[d.id]!.checks!.txt.ok
+-                  ? '✓ رکورد TXT درست است.'
+-                  : '✗ رکورد TXT پیدا نشد یا مقدارش فرق دارد.'
+-              }}
+-              <span
+-                v-if="!results[d.id]!.checks!.txt.ok && results[d.id]!.checks!.txt.found.length"
+-                class="block text-xs text-slate-500"
+-                dir="ltr"
+-              >
+-                دیده‌شده: {{ results[d.id]!.checks!.txt.found.join(' | ') }}
++          <ul v-if="results[d.id]?.checks" class="space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
++            <li
++              class="flex items-start gap-2"
++              :class="results[d.id]!.checks!.txt.ok ? 'text-emerald-700' : 'text-red-700'"
++            >
++              <AppIcon :name="results[d.id]!.checks!.txt.ok ? 'check' : 'close'" :size="16" class="mt-1 shrink-0" />
++              <span>
++                {{
++                  results[d.id]!.checks!.txt.ok
++                    ? 'رکورد TXT درست است.'
++                    : 'رکورد TXT پیدا نشد یا مقدارش فرق دارد.'
++                }}
++                <span
++                  v-if="!results[d.id]!.checks!.txt.ok && results[d.id]!.checks!.txt.found.length"
++                  class="tech block text-xs text-slate-500"
++                >
++                  دیده‌شده: {{ results[d.id]!.checks!.txt.found.join(' | ') }}
++                </span>
+               </span>
+-            </p>
+-            <p :class="results[d.id]!.checks!.routing.ok ? 'text-emerald-700' : 'text-red-700'">
+-              {{
+-                results[d.id]!.checks!.routing.ok
+-                  ? '✓ آدرس دامنه به فروشگاه اشاره می‌کند.'
+-                  : '✗ CNAME (یا A) هنوز به آدرس درست اشاره نمی‌کند.'
+-              }}
+-              <span
+-                v-if="
+-                  !results[d.id]!.checks!.routing.ok && results[d.id]!.checks!.routing.cname.length
+-                "
+-                class="block text-xs text-slate-500"
+-                dir="ltr"
+-              >
+-                CNAME دیده‌شده: {{ results[d.id]!.checks!.routing.cname.join(' | ') }}
++            </li>
++            <li
++              class="flex items-start gap-2"
++              :class="results[d.id]!.checks!.routing.ok ? 'text-emerald-700' : 'text-red-700'"
++            >
++              <AppIcon
++                :name="results[d.id]!.checks!.routing.ok ? 'check' : 'close'"
++                :size="16"
++                class="mt-1 shrink-0"
++              />
++              <span>
++                {{
++                  results[d.id]!.checks!.routing.ok
++                    ? 'آدرس دامنه به فروشگاه اشاره می‌کند.'
++                    : 'CNAME (یا A) هنوز به آدرس درست اشاره نمی‌کند.'
++                }}
++                <span
++                  v-if="!results[d.id]!.checks!.routing.ok && results[d.id]!.checks!.routing.cname.length"
++                  class="tech block text-xs text-slate-500"
++                >
++                  CNAME دیده‌شده: {{ results[d.id]!.checks!.routing.cname.join(' | ') }}
++                </span>
+               </span>
+-            </p>
+-          </div>
++            </li>
++          </ul>
+         </template>
+       </article>
+     </template>
+diff --git a/apps/dashboard/app/pages/settings/payment.vue b/apps/dashboard/app/pages/settings/payment.vue
+index 44a5c71..34e8483 100644
+--- a/apps/dashboard/app/pages/settings/payment.vue
++++ b/apps/dashboard/app/pages/settings/payment.vue
+@@ -60,29 +60,44 @@ async function remove() {
+ </script>
+ 
+ <template>
+-  <div class="max-w-2xl space-y-6">
+-    <h1 class="text-2xl font-extrabold">درگاه پرداخت</h1>
++  <div class="max-w-5xl space-y-6">
++    <PageHeader title="تنظیمات" subtitle="ظاهر و اطلاعات فروشگاه، پرداخت، دامنه و پلن" />
++    <SettingsTabs />
+ 
+-    <p v-if="error" class="card text-red-700">{{ apiErrorMessage(error) }}</p>
++    <p v-if="error" class="alert-error">{{ apiErrorMessage(error) }}</p>
+ 
+-    <template v-else-if="gateway">
+-      <section class="card space-y-4">
+-        <div class="flex items-center justify-between gap-3">
+-          <div>
+-            <h2 class="text-lg font-bold">زرین‌پال</h2>
+-            <p v-if="gateway.configured" class="text-sm text-slate-500">
+-              شناسه‌ی پذیرنده ثبت شده است (…<span dir="ltr">{{ gateway.merchantHint }}</span>)
+-            </p>
+-            <p v-else class="text-sm text-amber-700">هنوز شناسه‌ای ثبت نشده است.</p>
++    <div v-else-if="gateway" class="grid gap-6 lg:grid-cols-5">
++      <section class="card space-y-5 lg:col-span-3">
++        <div class="flex items-start justify-between gap-3">
++          <div class="flex items-center gap-3">
++            <span class="grid size-11 place-items-center rounded-xl bg-amber-50 text-amber-600">
++              <AppIcon name="payment" :size="22" />
++            </span>
++            <div>
++              <h2 class="text-lg font-bold">زرین‌پال</h2>
++              <p class="text-sm text-slate-500">پرداخت آنلاین با کارت‌های بانکی</p>
++            </div>
+           </div>
+           <span
+-            class="badge"
++            class="badge gap-1.5"
+             :class="gateway.configured && gateway.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+           >
++            <span
++              class="size-1.5 rounded-full"
++              :class="gateway.configured && gateway.isActive ? 'bg-emerald-500' : 'bg-slate-400'"
++            />
+             {{ gateway.configured && gateway.isActive ? 'فعال' : 'غیرفعال' }}
+           </span>
+         </div>
+ 
++        <p v-if="!gateway.configured" class="alert-warn">
++          هنوز شناسه‌ی پذیرنده‌ای ثبت نشده است؛ تا آن موقع مشتری‌ها نمی‌توانند آنلاین پرداخت کنند.
++        </p>
++        <p v-else class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
++          شناسه‌ی پذیرنده ثبت شده است:
++          <span class="tech font-medium">…{{ gateway.merchantHint }}</span>
++        </p>
++
+         <template v-if="isOwner">
+           <form class="space-y-3" novalidate @submit.prevent="save">
+             <label class="block">
+@@ -91,7 +106,7 @@ async function remove() {
+               </span>
+               <input
+                 v-model="merchantId"
+-                class="input"
++                class="input tech"
+                 dir="ltr"
+                 maxlength="36"
+                 autocomplete="off"
+@@ -99,7 +114,7 @@ async function remove() {
+               />
+             </label>
+             <button type="submit" class="btn btn-primary" :disabled="saving">
+-              {{ saving ? 'در حال ذخیره…' : 'ذخیره' }}
++              {{ saving ? 'در حال ذخیره…' : gateway.configured ? 'جایگزینی شناسه' : 'ذخیره' }}
+             </button>
+           </form>
+ 
+@@ -107,24 +122,35 @@ async function remove() {
+             <button type="button" class="btn btn-secondary" @click="setActive(!gateway.isActive)">
+               {{ gateway.isActive ? 'غیرفعال‌کردن پرداخت آنلاین' : 'فعال‌کردن پرداخت آنلاین' }}
+             </button>
+-            <button type="button" class="btn btn-secondary text-red-600" @click="remove">حذف تنظیمات</button>
++            <button type="button" class="btn btn-ghost text-red-600 hover:!bg-red-50" @click="remove">
++              <AppIcon name="trash" :size="16" />
++              حذف تنظیمات
++            </button>
+           </div>
+         </template>
+-        <p v-else class="text-sm text-slate-500">فقط مالک فروشگاه می‌تواند درگاه را تنظیم کند.</p>
++        <p v-else class="flex items-center gap-2 text-sm text-slate-500">
++          <AppIcon name="lock" :size="16" />
++          فقط مالک فروشگاه می‌تواند درگاه را تنظیم کند.
++        </p>
+       </section>
+ 
+-      <section class="card space-y-2 text-sm leading-7 text-slate-600">
+-        <h2 class="text-lg font-bold text-slate-900">نکات مهم</h2>
+-        <ul class="list-disc space-y-1 ps-5">
+-          <li>شناسه‌ی پذیرنده را از پنل زرین‌پال (بخش درگاه‌ها) بردارید.</li>
+-          <li>شناسه به‌صورت رمزنگاری‌شده ذخیره می‌شود و دوباره نمایش داده نمی‌شود.</li>
+-          <li>
+-            زرین‌پال معمولاً دامنه‌ی بازگشت را با دامنه‌ی ثبت‌شده‌ی درگاه مقایسه می‌کند؛ آدرس فروشگاه شما باید با
+-            دامنه‌ی ثبت‌شده در پنل زرین‌پال یکی باشد.
+-          </li>
+-          <li>پول مستقیم به حساب خودتان در زرین‌پال واریز می‌شود، نه به حساب پلتفرم.</li>
+-        </ul>
+-      </section>
+-    </template>
++      <aside class="lg:col-span-2">
++        <section class="card space-y-3 text-sm leading-7 text-slate-600">
++          <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900">
++            <AppIcon name="info" :size="20" class="text-brand-600" />
++            نکات مهم
++          </h2>
++          <ul class="list-disc space-y-1.5 ps-5">
++            <li>شناسه‌ی پذیرنده را از پنل زرین‌پال (بخش درگاه‌ها) بردارید.</li>
++            <li>شناسه به‌صورت رمزنگاری‌شده ذخیره می‌شود و دوباره نمایش داده نمی‌شود.</li>
++            <li>
++              زرین‌پال معمولاً دامنه‌ی بازگشت را با دامنه‌ی ثبت‌شده‌ی درگاه مقایسه می‌کند؛ آدرس فروشگاه شما باید با
++              دامنه‌ی ثبت‌شده در پنل زرین‌پال یکی باشد.
++            </li>
++            <li>پول مستقیم به حساب خودتان در زرین‌پال واریز می‌شود، نه به حساب پلتفرم.</li>
++          </ul>
++        </section>
++      </aside>
++    </div>
+   </div>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/dashboard/app/pages/settings/plan.vue b/apps/dashboard/app/pages/settings/plan.vue
+index 418ba31..e526fda 100644
+--- a/apps/dashboard/app/pages/settings/plan.vue
++++ b/apps/dashboard/app/pages/settings/plan.vue
+@@ -29,29 +29,37 @@ const nearLimit = computed(() => rows.value.some((r) => r.limit !== null && r.li
+ </script>
+ 
+ <template>
+-  <div class="max-w-2xl space-y-6">
+-    <h1 class="text-2xl font-extrabold">پلن و مصرف</h1>
++  <div class="max-w-5xl space-y-6">
++    <PageHeader title="تنظیمات" subtitle="ظاهر و اطلاعات فروشگاه، پرداخت، دامنه و پلن" />
++    <SettingsTabs />
+ 
+-    <p v-if="error" class="card text-red-700">{{ apiErrorMessage(error) }}</p>
++    <p v-if="error" class="alert-error">{{ apiErrorMessage(error) }}</p>
+ 
+     <template v-else-if="data">
+-      <section class="card flex items-center justify-between gap-3">
+-        <div>
+-          <div class="text-sm text-slate-500">پلن فعلی</div>
+-          <div class="text-2xl font-extrabold text-brand-600">{{ data.plan.name }}</div>
+-        </div>
+-        <div v-if="data.plan.priceMonthly" class="text-end text-sm text-slate-600">
+-          {{ formatPrice(data.plan.priceMonthly) }} در ماه
++      <section class="card flex flex-wrap items-center justify-between gap-4 overflow-hidden !p-0">
++        <div class="flex-1 bg-gradient-to-l from-brand-600 to-brand-800 p-6 text-white">
++          <div class="flex items-center gap-2 text-sm text-brand-100">
++            <AppIcon name="sparkle" :size="16" />
++            پلن فعلی
++          </div>
++          <div class="mt-1 text-3xl font-extrabold">{{ data.plan.name }}</div>
++          <div v-if="data.plan.priceMonthly" class="mt-1 text-sm text-brand-100">
++            {{ formatPrice(data.plan.priceMonthly) }} در ماه
++          </div>
+         </div>
+       </section>
+ 
+-      <section class="card space-y-5">
+-        <div v-for="r in rows" :key="r.label" class="space-y-1">
+-          <div class="flex items-center justify-between text-sm">
+-            <span class="font-medium">{{ r.label }}</span>
+-            <span class="text-slate-600">
+-              {{ r.text }} از
+-              {{ r.limit === null ? 'نامحدود' : formatNumber(r.limit) }}
++      <p v-if="nearLimit" class="alert-warn !p-4">
++        مصرف شما به سقف پلن نزدیک است. برای ارتقا با پشتیبانی تماس بگیرید.
++      </p>
++
++      <div class="grid gap-4 sm:grid-cols-3">
++        <section v-for="r in rows" :key="r.label" class="card space-y-3 !p-5">
++          <div class="text-sm font-medium text-slate-500">{{ r.label }}</div>
++          <div>
++            <span class="text-2xl font-extrabold">{{ r.text }}</span>
++            <span class="text-sm text-slate-500">
++              از {{ r.limit === null ? 'نامحدود' : formatNumber(r.limit) }}
+               <template v-if="r.unit && r.limit !== null"> {{ r.unit }}</template>
+             </span>
+           </div>
+@@ -59,6 +67,7 @@ const nearLimit = computed(() => rows.value.some((r) => r.limit !== null && r.li
+             v-if="r.limit !== null"
+             class="h-2 overflow-hidden rounded-full bg-slate-100"
+             role="progressbar"
++            :aria-label="r.label"
+             :aria-valuenow="r.percent"
+             aria-valuemin="0"
+             aria-valuemax="100"
+@@ -70,15 +79,13 @@ const nearLimit = computed(() => rows.value.some((r) => r.limit !== null && r.li
+             />
+           </div>
+           <p v-if="r.limit === 0" class="text-xs text-amber-700">این امکان در پلن فعلی شما نیست.</p>
+-        </div>
+-      </section>
++          <p v-else-if="r.limit !== null" class="text-xs text-slate-500">{{ formatNumber(r.percent) }}٪ مصرف شده</p>
++        </section>
++      </div>
+ 
+-      <p v-if="nearLimit" class="rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
+-        مصرف شما به سقف پلن نزدیک است. برای ارتقا با پشتیبانی تماس بگیرید.
+-      </p>
+-      <p class="text-xs text-slate-500">
++      <p class="hint">
+         با کاهش پلن، محصولات و دامنه‌های موجود حذف نمی‌شوند؛ فقط ساخت مورد جدید تا زیر سقف‌رفتن مسدود است.
+       </p>
+     </template>
+   </div>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/dashboard/app/pages/settings/theme.vue b/apps/dashboard/app/pages/settings/theme.vue
+index 724d69b..d205a84 100644
+--- a/apps/dashboard/app/pages/settings/theme.vue
++++ b/apps/dashboard/app/pages/settings/theme.vue
+@@ -23,6 +23,8 @@ const form = reactive({
+ const logo = ref<ImageDto | null>(null);
+ const savedSignature = ref('');
+ const storeUrl = ref('');
++const lastDto = ref<StoreSettingsDto | null>(null);
++const storeHost = computed(() => storeUrl.value.replace(/^https?:\/\//, ''));
+ 
+ const signature = () =>
+   JSON.stringify([
+@@ -34,6 +36,7 @@ const signature = () =>
+   ]);
+ 
+ function apply(dto: StoreSettingsDto) {
++  lastDto.value = dto;
+   form.name = dto.name;
+   form.description = dto.description ?? '';
+   form.primaryColor = dto.primaryColor;
+@@ -44,6 +47,10 @@ function apply(dto: StoreSettingsDto) {
+ }
+ if (data.value) apply(data.value);
+ 
++function discard() {
++  if (lastDto.value) apply(lastDto.value);
++}
++
+ const dirty = computed(() => signature() !== savedSignature.value);
+ const colorValid = computed(() => isHexColor(form.primaryColor));
+ const lowContrast = computed(() => colorValid.value && lowContrastOnWhite(form.primaryColor));
+@@ -98,160 +105,193 @@ onBeforeRouteLeave(
+ </script>
+ 
+ <template>
+-  <div class="max-w-4xl space-y-6">
+-    <header class="flex flex-wrap items-center justify-between gap-3">
+-      <h1 class="text-2xl font-extrabold">ظاهر فروشگاه</h1>
+-      <a
+-        v-if="storeUrl"
+-        :href="storeUrl"
+-        target="_blank"
+-        rel="noopener"
+-        class="btn btn-secondary btn-sm"
+-      >
++  <div class="max-w-5xl space-y-6">
++    <PageHeader title="تنظیمات" subtitle="ظاهر و اطلاعات فروشگاه، پرداخت، دامنه و پلن">
++      <a v-if="storeUrl" :href="storeUrl" target="_blank" rel="noopener" class="btn btn-secondary">
+         مشاهده‌ی فروشگاه
++        <AppIcon name="external" :size="16" />
+       </a>
+-    </header>
++    </PageHeader>
++    <SettingsTabs />
+ 
+-    <p v-if="error" class="card text-red-700">{{ apiErrorMessage(error) }}</p>
++    <p v-if="error" class="alert-error">{{ apiErrorMessage(error) }}</p>
+ 
+-    <div v-else class="grid gap-6 lg:grid-cols-2">
+-      <form class="card space-y-5" novalidate @submit.prevent="save">
+-        <fieldset :disabled="!canEdit || saving" class="space-y-5">
+-          <label class="block">
+-            <span class="label">نام فروشگاه</span>
+-            <input v-model="form.name" class="input" maxlength="60" />
+-            <span v-if="nameError" class="mt-1 block text-xs text-red-700">{{ nameError }}</span>
+-          </label>
++    <div v-else class="grid gap-6 lg:grid-cols-5">
++      <form id="theme-form" class="space-y-6 lg:col-span-3" novalidate @submit.prevent="save">
++        <fieldset :disabled="!canEdit || saving" class="space-y-6">
++          <FormSection title="هویت فروشگاه">
++            <label class="block">
++              <span class="label">نام فروشگاه</span>
++              <input v-model="form.name" class="input" maxlength="60" />
++              <span v-if="nameError" class="mt-1 block text-xs text-red-700">{{ nameError }}</span>
++            </label>
+ 
+-          <label class="block">
+-            <span class="label">توضیح کوتاه</span>
+-            <textarea v-model="form.description" rows="3" class="input" maxlength="500" />
+-            <span class="mt-1 block text-xs text-slate-500"
+-              >در صفحه‌ی اصلی پیش‌فرض و نتایج جستجو نمایش داده می‌شود ({{
+-                form.description.length
+-              }}
+-              / ۵۰۰)</span
+-            >
+-          </label>
++            <label class="block">
++              <span class="label">توضیح کوتاه</span>
++              <textarea v-model="form.description" rows="3" class="input" maxlength="500" />
++              <span class="hint">
++                در صفحه‌ی اصلی و نتایج جستجو نمایش داده می‌شود ({{ formatNumber(form.description.length) }} /
++                {{ formatNumber(500) }})
++              </span>
++            </label>
+ 
+-          <div>
+-            <span class="label">لوگو</span>
+-            <div class="flex items-center gap-3">
+-              <img
+-                v-if="logo"
+-                :src="logo.urls.sm"
+-                :alt="logo.alt ?? 'لوگو'"
+-                class="h-14 w-auto max-w-32 rounded-lg border border-slate-200 object-contain p-1"
+-              />
+-              <div
+-                v-else
+-                class="flex size-14 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400"
+-              >
+-                بدون لوگو
++            <div>
++              <span class="label">لوگو</span>
++              <div class="flex flex-wrap items-center gap-3">
++                <img
++                  v-if="logo"
++                  :src="logo.urls.sm"
++                  :alt="logo.alt ?? 'لوگو'"
++                  class="h-16 w-auto max-w-36 rounded-xl border border-slate-200 bg-white object-contain p-1.5"
++                />
++                <span
++                  v-else
++                  class="grid size-16 place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-300"
++                >
++                  <AppIcon name="image" :size="26" />
++                </span>
++                <button type="button" class="btn btn-secondary btn-sm" @click="pickerOpen = true">
++                  {{ logo ? 'تغییر لوگو' : 'انتخاب لوگو' }}
++                </button>
++                <button v-if="logo" type="button" class="btn btn-ghost btn-sm text-red-600" @click="logo = null">
++                  حذف
++                </button>
+               </div>
+-              <button type="button" class="btn btn-secondary btn-sm" @click="pickerOpen = true">
+-                {{ logo ? 'تغییر' : 'انتخاب' }}
+-              </button>
+-              <button
+-                v-if="logo"
+-                type="button"
+-                class="btn btn-secondary btn-sm"
+-                @click="logo = null"
+-              >
+-                حذف
+-              </button>
+             </div>
+-          </div>
++          </FormSection>
+ 
+-          <div>
+-            <span class="label">رنگ اصلی</span>
+-            <div class="flex items-center gap-3">
+-              <input
+-                type="color"
+-                :value="previewColor"
+-                class="size-11 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
+-                aria-label="انتخاب رنگ"
+-                @input="form.primaryColor = ($event.target as HTMLInputElement).value"
+-              />
+-              <input
+-                v-model="form.primaryColor"
+-                class="input max-w-40"
+-                dir="ltr"
+-                maxlength="7"
+-                placeholder="#4f46e5"
+-              />
++          <FormSection title="رنگ و فونت" description="در ویترین هم همین رنگ و فونت اعمال می‌شود.">
++            <div>
++              <span class="label">سبک‌های آماده</span>
++              <div class="flex flex-wrap gap-2">
++                <button
++                  v-for="pr in LOOK_PRESETS"
++                  :key="pr.key"
++                  type="button"
++                  class="flex items-center gap-2 rounded-full border-2 py-1 pe-3 ps-1 text-sm transition"
++                  :class="
++                    form.primaryColor.toLowerCase() === pr.primaryColor
++                      ? 'border-brand-600 bg-brand-50'
++                      : 'border-slate-200 hover:border-slate-300'
++                  "
++                  @click="form.primaryColor = pr.primaryColor"
++                >
++                  <span class="size-6 rounded-full" :style="{ background: pr.primaryColor }" />
++                  {{ pr.label }}
++                </button>
++              </div>
++            </div>
++
++            <div>
++              <span class="label">رنگ دلخواه</span>
++              <div class="flex items-center gap-3">
++                <input
++                  type="color"
++                  :value="previewColor"
++                  class="size-11 cursor-pointer rounded-lg border border-slate-300 bg-white p-1"
++                  aria-label="انتخاب رنگ"
++                  @input="form.primaryColor = ($event.target as HTMLInputElement).value"
++                />
++                <input
++                  v-model="form.primaryColor"
++                  class="input tech max-w-40"
++                  dir="ltr"
++                  maxlength="7"
++                  placeholder="#4f46e5"
++                />
++              </div>
++              <p v-if="!colorValid" class="mt-1 text-xs text-red-700">رنگ باید با فرمت #rrggbb باشد</p>
++              <p v-else-if="lowContrast" class="alert-warn mt-2">
++                این رنگ روی پس‌زمینه‌ی سفید کم‌رنگ است؛ قیمت‌ها و لینک‌های رنگی ممکن است خوانا نباشند.
++                رنگ تیره‌تری امتحان کنید.
++              </p>
+             </div>
+-            <p v-if="!colorValid" class="mt-1 text-xs text-red-700">
+-              رنگ باید با فرمت #rrggbb باشد
+-            </p>
+-            <p v-else-if="lowContrast" class="mt-1 text-xs text-amber-700">
+-              این رنگ روی پس‌زمینه‌ی سفید کم‌رنگ است؛ قیمت‌ها و لینک‌های رنگی ممکن است خوانا نباشند.
+-              رنگ تیره‌تری امتحان کنید.
+-            </p>
+-          </div>
+ 
+-          <label v-if="STORE_FONTS.length > 1" class="block">
+-            <span class="label">فونت</span>
+-            <select v-model="form.font" class="input">
+-              <option v-for="f in STORE_FONTS" :key="f.key" :value="f.key">{{ f.label }}</option>
+-            </select>
+-          </label>
+-          <p v-else class="text-sm text-slate-600">
+-            فونت فروشگاه: <b>{{ STORE_FONTS[0].label }}</b>
+-            (فعلاً تنها فونت پشتیبانی‌شده است؛ فونت‌های بیشتر بعد از لانچ اضافه می‌شود)
+-          </p>
++            <label v-if="STORE_FONTS.length > 1" class="block">
++              <span class="label">فونت</span>
++              <select v-model="form.font" class="input">
++                <option v-for="f in STORE_FONTS" :key="f.key" :value="f.key">{{ f.label }}</option>
++              </select>
++            </label>
++            <p v-else class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
++              فونت فروشگاه: <b>{{ STORE_FONTS[0].label }}</b>
++              (فعلاً تنها فونت پشتیبانی‌شده است؛ فونت‌های بیشتر بعد از لانچ اضافه می‌شود)
++            </p>
++          </FormSection>
+         </fieldset>
+ 
+         <p v-if="!canEdit" class="text-sm text-slate-500">
+           فقط مالک و مدیر می‌توانند ظاهر فروشگاه را تغییر دهند.
+         </p>
+-        <button v-else type="submit" class="btn btn-primary" :disabled="saving || !dirty">
+-          {{ saving ? 'در حال ذخیره…' : 'ذخیره' }}
+-        </button>
+       </form>
+ 
+       <!-- پیش‌نمایش زنده -->
+-      <section class="space-y-3">
+-        <h2 class="text-lg font-bold">پیش‌نمایش</h2>
+-        <div
+-          class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
+-          :data-font="form.font"
+-        >
+-          <div class="flex items-center gap-3">
+-            <img
+-              v-if="logo"
+-              :src="logo.urls.sm"
+-              :alt="form.name"
+-              class="h-10 w-auto max-w-32 object-contain"
+-            />
+-            <span
+-              v-else
+-              class="flex size-10 items-center justify-center rounded-xl text-lg font-extrabold"
+-              :style="{ backgroundColor: previewColor, color: contrastColor(previewColor) }"
+-            >
+-              {{ initial }}
+-            </span>
+-            <span class="text-lg font-extrabold">{{ form.name || 'نام فروشگاه' }}</span>
+-          </div>
++      <aside class="lg:col-span-2" aria-label="پیش‌نمایش">
++        <div class="space-y-3 lg:sticky lg:top-6">
++          <h2 class="text-sm font-bold text-slate-500">پیش‌نمایش زنده</h2>
++          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card" :data-font="form.font">
++            <div class="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-3 py-2">
++              <span class="size-2.5 rounded-full bg-slate-300" />
++              <span class="size-2.5 rounded-full bg-slate-300" />
++              <span class="size-2.5 rounded-full bg-slate-300" />
++              <span class="tech mx-auto truncate text-[10px] text-slate-400">{{ storeHost }}</span>
++            </div>
++            <div class="space-y-4 p-5">
++              <div class="flex items-center gap-3">
++                <img v-if="logo" :src="logo.urls.sm" :alt="form.name" class="h-9 w-auto max-w-28 object-contain" />
++                <span
++                  v-else
++                  class="grid size-9 place-items-center rounded-xl text-base font-extrabold"
++                  :style="{ backgroundColor: previewColor, color: contrastColor(previewColor) }"
++                >
++                  {{ initial }}
++                </span>
++                <span class="font-extrabold">{{ form.name || 'نام فروشگاه' }}</span>
++              </div>
++
++              <p class="text-sm leading-7 text-slate-600">
++                {{ form.description.trim() || 'توضیح کوتاه فروشگاه شما اینجا نمایش داده می‌شود.' }}
++              </p>
+ 
+-          <p class="leading-7 text-slate-600">
+-            {{ form.description.trim() || 'توضیح کوتاه فروشگاه شما اینجا نمایش داده می‌شود.' }}
+-          </p>
++              <div class="grid grid-cols-2 gap-3">
++                <div v-for="n in 2" :key="n" class="rounded-xl border border-slate-100 p-2.5">
++                  <div class="mb-2 aspect-[4/3] rounded-lg bg-slate-100" />
++                  <div class="mb-1.5 h-2.5 w-3/4 rounded bg-slate-200" />
++                  <div class="text-sm font-bold" :style="{ color: brandTextColor(previewColor) }">
++                    ۱٬۲۰۰٬۰۰۰ تومان
++                  </div>
++                </div>
++              </div>
+ 
+-          <div class="flex flex-wrap items-center gap-4">
+-            <span
+-              class="inline-flex rounded-lg px-5 py-2.5 text-sm font-medium"
+-              :style="{ backgroundColor: previewColor, color: contrastColor(previewColor) }"
+-            >
+-              افزودن به سبد خرید
+-            </span>
+-            <span class="font-bold" :style="{ color: brandTextColor(previewColor) }"
+-              >۱٬۲۰۰٬۰۰۰ تومان</span
+-            >
++              <span
++                class="flex justify-center rounded-lg px-5 py-2.5 text-sm font-medium"
++                :style="{ backgroundColor: previewColor, color: contrastColor(previewColor) }"
++              >
++                افزودن به سبد خرید
++              </span>
++            </div>
+           </div>
+         </div>
+-        <p class="text-xs text-slate-500">در ویترین هم همین رنگ و فونت اعمال می‌شود.</p>
+-      </section>
++      </aside>
++    </div>
++
++    <!-- نوار ذخیره: فقط وقتی تغییر ذخیره‌نشده هست -->
++    <div
++      v-if="canEdit && dirty"
++      class="sticky bottom-4 z-20 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg"
++      role="region"
++      aria-label="ذخیره‌ی تغییرات"
++    >
++      <span class="flex items-center gap-2 text-sm text-slate-600">
++        <span class="size-2 rounded-full bg-amber-500" />
++        تغییرات ذخیره‌نشده
++      </span>
++      <div class="flex gap-2">
++        <button type="button" class="btn btn-ghost" :disabled="saving" @click="discard">بازگردانی</button>
++        <button type="submit" form="theme-form" class="btn btn-primary" :disabled="saving">
++          {{ saving ? 'در حال ذخیره…' : 'ذخیره' }}
++        </button>
++      </div>
+     </div>
+ 
+     <MediaPicker v-model:open="pickerOpen" @select="onLogoPicked" />
