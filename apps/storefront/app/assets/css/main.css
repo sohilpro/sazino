@@ -15,15 +15,18 @@
  */
 @theme {
   --font-sans: 'Vazirmatn FD', system-ui, sans-serif;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
 }
 
 /* inline: رنگ‌ها در لحظه‌ی استفاده از --store-primary ساخته می‌شوند */
 @theme inline {
   --color-brand-50: color-mix(in oklab, var(--store-primary) 8%, white);
   --color-brand-100: color-mix(in oklab, var(--store-primary) 16%, white);
+  --color-brand-200: color-mix(in oklab, var(--store-primary) 28%, white);
   --color-brand-500: color-mix(in oklab, var(--store-primary) 88%, white);
   --color-brand-600: var(--store-primary);
   --color-brand-700: color-mix(in oklab, var(--store-primary) 85%, black);
+  --color-brand-900: color-mix(in oklab, var(--store-primary) 45%, black);
   --color-on-brand: var(--store-on-primary);
 }
 
@@ -43,6 +46,15 @@
   .btn-secondary {
     @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
   }
+  .btn-lg {
+    @apply px-7 py-3 text-base;
+  }
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100;
+  }
+  .icon-btn {
+    @apply relative inline-flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
+  }
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
@@ -53,7 +65,7 @@
     @apply mb-1 block text-sm font-medium text-slate-700;
   }
   .card {
-    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-card;
   }
   /* متن فنی (کد، شناسه، آدرس): ارقام لاتین، چپ‌به‌راست */
   .tech {

@@ -29,14 +29,18 @@ const { data } = await useAsyncData(key, () =>
 
 <template>
   <!-- بلاک بدون محصول (دسته‌ی خالی یا خطای موقت) اصلاً نمایش داده نمی‌شود -->
-  <section v-if="data?.items.length" class="space-y-4">
-    <div v-if="p.title" class="flex items-center justify-between">
-      <h2 class="text-xl font-bold">{{ p.title }}</h2>
+  <section v-if="data?.items.length" class="space-y-5">
+    <div v-if="p.title" class="flex items-center justify-between gap-3">
+      <h2 class="flex items-center gap-3 text-xl font-extrabold sm:text-2xl">
+        <span class="h-6 w-1.5 rounded-full bg-brand-600" aria-hidden="true" />
+        {{ p.title }}
+      </h2>
       <NuxtLink
         :to="p.source === 'category' && p.categorySlug ? `/categories/${encodeURIComponent(p.categorySlug)}` : '/products'"
-        class="text-sm text-brand-700 hover:underline"
+        class="flex items-center gap-1 text-sm font-medium text-brand-700 transition hover:gap-2"
       >
         مشاهده‌ی همه
+        <StoreIcon name="chevronLeft" :size="16" />
       </NuxtLink>
     </div>
 

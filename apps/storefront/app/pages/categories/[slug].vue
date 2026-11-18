@@ -74,22 +74,13 @@ useHead(() => {
     <Breadcrumbs :items="crumbs" />
 
     <header>
-      <h1 class="text-2xl font-extrabold">{{ detail.category.name }}</h1>
+      <h1 class="text-2xl font-extrabold sm:text-3xl">{{ detail.category.name }}</h1>
       <p v-if="detail.category.description" class="mt-2 max-w-2xl text-slate-600">
         {{ detail.category.description }}
       </p>
     </header>
 
-    <div v-if="subcategories.length" class="flex flex-wrap gap-2">
-      <NuxtLink
-        v-for="c in subcategories"
-        :key="c.id"
-        :to="`/categories/${encodeURIComponent(c.slug)}`"
-        class="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm transition hover:border-brand-500 hover:text-brand-700"
-      >
-        {{ c.name }}
-      </NuxtLink>
-    </div>
+    <CategoryChips :items="subcategories" />
 
     <ProductListing
       :data="products"

@@ -1,0 +1,781 @@
+diff --git a/apps/storefront/app/assets/css/main.css b/apps/storefront/app/assets/css/main.css
+index eeb49be..ed46287 100644
+--- a/apps/storefront/app/assets/css/main.css
++++ b/apps/storefront/app/assets/css/main.css
+@@ -15,15 +15,18 @@
+  */
+ @theme {
+   --font-sans: 'Vazirmatn FD', system-ui, sans-serif;
++  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
+ }
+ 
+ /* inline: رنگ‌ها در لحظه‌ی استفاده از --store-primary ساخته می‌شوند */
+ @theme inline {
+   --color-brand-50: color-mix(in oklab, var(--store-primary) 8%, white);
+   --color-brand-100: color-mix(in oklab, var(--store-primary) 16%, white);
++  --color-brand-200: color-mix(in oklab, var(--store-primary) 28%, white);
+   --color-brand-500: color-mix(in oklab, var(--store-primary) 88%, white);
+   --color-brand-600: var(--store-primary);
+   --color-brand-700: color-mix(in oklab, var(--store-primary) 85%, black);
++  --color-brand-900: color-mix(in oklab, var(--store-primary) 45%, black);
+   --color-on-brand: var(--store-on-primary);
+ }
+ 
+@@ -43,6 +46,15 @@
+   .btn-secondary {
+     @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+   }
++  .btn-lg {
++    @apply px-7 py-3 text-base;
++  }
++  .btn-ghost {
++    @apply text-slate-600 hover:bg-slate-100;
++  }
++  .icon-btn {
++    @apply relative inline-flex size-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500;
++  }
+   .badge {
+     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+   }
+@@ -53,7 +65,7 @@
+     @apply mb-1 block text-sm font-medium text-slate-700;
+   }
+   .card {
+-    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
++    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-card;
+   }
+   /* متن فنی (کد، شناسه، آدرس): ارقام لاتین، چپ‌به‌راست */
+   .tech {
+diff --git a/apps/storefront/app/components/AccountLink.vue b/apps/storefront/app/components/AccountLink.vue
+index f44dbf7..5ab1192 100644
+--- a/apps/storefront/app/components/AccountLink.vue
++++ b/apps/storefront/app/components/AccountLink.vue
+@@ -3,9 +3,23 @@ const { customer, loaded } = useCustomer();
+ </script>
+ 
+ <template>
+-  <NuxtLink v-if="loaded && customer" to="/account" class="text-sm hover:text-brand-700">
+-    {{ customer.name || 'حساب من' }}
++  <NuxtLink
++    v-if="loaded && customer"
++    to="/account"
++    class="flex h-10 items-center gap-2 rounded-full px-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-brand-700 sm:px-3"
++    :aria-label="customer.name || 'حساب من'"
++  >
++    <StoreIcon name="user" :size="22" />
++    <span class="hidden max-w-28 truncate sm:inline">{{ customer.name || 'حساب من' }}</span>
+   </NuxtLink>
+-  <NuxtLink v-else-if="loaded" to="/login" class="text-sm hover:text-brand-700">ورود</NuxtLink>
+-  <span v-else class="inline-block w-10" aria-hidden="true" />
+-</template>
+\ No newline at end of file
++  <NuxtLink
++    v-else-if="loaded"
++    to="/login"
++    class="flex h-10 items-center gap-2 rounded-full px-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-brand-700 sm:px-3"
++    aria-label="ورود"
++  >
++    <StoreIcon name="user" :size="22" />
++    <span class="hidden sm:inline">ورود</span>
++  </NuxtLink>
++  <span v-else class="inline-block h-10 w-10" aria-hidden="true" />
++</template>
+diff --git a/apps/storefront/app/components/AppPagination.vue b/apps/storefront/app/components/AppPagination.vue
+index 2591a9f..7e07302 100644
+--- a/apps/storefront/app/components/AppPagination.vue
++++ b/apps/storefront/app/components/AppPagination.vue
+@@ -17,9 +17,9 @@ const pages = computed(() => {
+   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+ });
+ 
+-const base = 'rounded-lg border px-3 py-1.5 text-sm transition';
++const base = 'inline-flex min-w-10 items-center justify-center gap-1 rounded-lg border px-3 py-2 text-sm transition';
+ const idle = 'border-slate-300 bg-white hover:border-brand-500 hover:text-brand-700';
+-const current = 'border-brand-600 bg-brand-600 text-on-brand';
++const current = 'border-brand-600 bg-brand-600 font-bold text-on-brand';
+ </script>
+ 
+ <template>
+@@ -34,6 +34,7 @@ const current = 'border-brand-600 bg-brand-600 text-on-brand';
+       rel="prev"
+       :class="[base, idle]"
+     >
++      <StoreIcon name="chevronRight" :size="16" />
+       قبلی
+     </NuxtLink>
+ 
+@@ -49,6 +50,7 @@ const current = 'border-brand-600 bg-brand-600 text-on-brand';
+ 
+     <NuxtLink v-if="meta.page < meta.totalPages" :to="linkTo(meta.page + 1)" rel="next" :class="[base, idle]">
+       بعدی
++      <StoreIcon name="chevronLeft" :size="16" />
+     </NuxtLink>
+   </nav>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/BlockHero.vue b/apps/storefront/app/components/BlockHero.vue
+index 7bde582..109bcd7 100644
+--- a/apps/storefront/app/components/BlockHero.vue
++++ b/apps/storefront/app/components/BlockHero.vue
+@@ -14,45 +14,57 @@ const external = computed(() => href.value?.startsWith('https://') ?? false);
+ 
+ <template>
+   <section
+-    class="relative overflow-hidden rounded-3xl"
+-    :class="p.image ? 'text-white' : 'bg-linear-to-b from-brand-50 to-white text-slate-900'"
++    class="relative isolate overflow-hidden rounded-3xl"
++    :class="p.image ? 'text-white' : 'bg-brand-50 text-slate-900'"
+   >
+     <template v-if="p.image">
+       <img
+         :src="p.image.urls.lg"
+         :alt="p.image.alt ?? ''"
+-        class="absolute inset-0 size-full object-cover"
++        class="absolute inset-0 -z-10 size-full object-cover"
+         fetchpriority="high"
+       />
+-      <div class="absolute inset-0 bg-black/50" aria-hidden="true" />
++      <div class="absolute inset-0 -z-10 bg-linear-to-t from-black/75 via-black/45 to-black/25" aria-hidden="true" />
++    </template>
++    <template v-else>
++      <div class="absolute -end-24 -top-24 -z-10 size-80 rounded-full bg-brand-100 blur-3xl" aria-hidden="true" />
++      <div class="absolute -bottom-28 -start-16 -z-10 size-72 rounded-full bg-brand-200/60 blur-3xl" aria-hidden="true" />
+     </template>
+ 
+     <div
+-      class="relative px-6 py-14 sm:px-14 sm:py-20"
++      class="px-6 py-16 sm:px-14 sm:py-24"
+       :class="p.align === 'center' ? 'text-center' : 'text-start'"
+     >
+       <component
+         :is="primary ? 'h1' : 'h2'"
+-        class="text-3xl font-extrabold sm:text-4xl"
+-        :class="!p.image && 'text-brand-700'"
++        class="text-3xl font-extrabold leading-tight sm:text-5xl sm:leading-tight"
++        :class="!p.image && 'text-brand-900'"
+       >
+         {{ p.title }}
+       </component>
+ 
+       <p
+         v-if="p.subtitle"
+-        class="mt-3 max-w-xl whitespace-pre-line"
++        class="mt-4 max-w-xl whitespace-pre-line text-base leading-8 sm:text-lg"
+         :class="[p.align === 'center' && 'mx-auto', p.image ? 'text-white/90' : 'text-slate-600']"
+       >
+         {{ p.subtitle }}
+       </p>
+ 
+-      <div v-if="p.ctaLabel && href" class="mt-6">
+-        <a v-if="external" :href="href" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
++      <div v-if="p.ctaLabel && href" class="mt-8">
++        <a
++          v-if="external"
++          :href="href"
++          target="_blank"
++          rel="noopener noreferrer"
++          class="btn btn-primary btn-lg shadow-lg shadow-black/10"
++        >
+           {{ p.ctaLabel }}
+         </a>
+-        <NuxtLink v-else :to="href" class="btn btn-primary">{{ p.ctaLabel }}</NuxtLink>
++        <NuxtLink v-else :to="href" class="btn btn-primary btn-lg shadow-lg shadow-black/10">
++          {{ p.ctaLabel }}
++        </NuxtLink>
+       </div>
+     </div>
+   </section>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/BlockProductGrid.vue b/apps/storefront/app/components/BlockProductGrid.vue
+index 61bc04a..b44cc87 100644
+--- a/apps/storefront/app/components/BlockProductGrid.vue
++++ b/apps/storefront/app/components/BlockProductGrid.vue
+@@ -29,14 +29,18 @@ const { data } = await useAsyncData(key, () =>
+ 
+ <template>
+   <!-- بلاک بدون محصول (دسته‌ی خالی یا خطای موقت) اصلاً نمایش داده نمی‌شود -->
+-  <section v-if="data?.items.length" class="space-y-4">
+-    <div v-if="p.title" class="flex items-center justify-between">
+-      <h2 class="text-xl font-bold">{{ p.title }}</h2>
++  <section v-if="data?.items.length" class="space-y-5">
++    <div v-if="p.title" class="flex items-center justify-between gap-3">
++      <h2 class="flex items-center gap-3 text-xl font-extrabold sm:text-2xl">
++        <span class="h-6 w-1.5 rounded-full bg-brand-600" aria-hidden="true" />
++        {{ p.title }}
++      </h2>
+       <NuxtLink
+         :to="p.source === 'category' && p.categorySlug ? `/categories/${encodeURIComponent(p.categorySlug)}` : '/products'"
+-        class="text-sm text-brand-700 hover:underline"
++        class="flex items-center gap-1 text-sm font-medium text-brand-700 transition hover:gap-2"
+       >
+         مشاهده‌ی همه
++        <StoreIcon name="chevronLeft" :size="16" />
+       </NuxtLink>
+     </div>
+ 
+@@ -44,4 +48,4 @@ const { data } = await useAsyncData(key, () =>
+       <ProductCard v-for="product in data.items" :key="product.id" :product="product" />
+     </div>
+   </section>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/BlockRenderer.vue b/apps/storefront/app/components/BlockRenderer.vue
+index 5173555..6039bcf 100644
+--- a/apps/storefront/app/components/BlockRenderer.vue
++++ b/apps/storefront/app/components/BlockRenderer.vue
+@@ -6,7 +6,7 @@ defineProps<{ blocks: PageBlock[] }>();
+ 
+ <template>
+   <!-- نگاشت صریح نوع ← کامپوننت؛ بلاک با نوع ناشناخته (نسخه‌ی جدیدتر داده) ساده نادیده گرفته می‌شود -->
+-  <div class="space-y-10">
++  <div class="space-y-12">
+     <template v-for="(block, i) in blocks" :key="block.id">
+       <BlockHero v-if="block.type === 'hero'" :block="block" :primary="i === 0" />
+       <BlockProductGrid v-else-if="block.type === 'product-grid'" :block="block" />
+diff --git a/apps/storefront/app/components/Breadcrumbs.vue b/apps/storefront/app/components/Breadcrumbs.vue
+index 0576190..06f5133 100644
+--- a/apps/storefront/app/components/Breadcrumbs.vue
++++ b/apps/storefront/app/components/Breadcrumbs.vue
+@@ -8,10 +8,10 @@ defineProps<{ items: Crumb[] }>();
+   <nav aria-label="مسیر صفحه" class="text-sm text-slate-500">
+     <ol class="flex flex-wrap items-center gap-1.5">
+       <li v-for="(item, i) in items" :key="i" class="flex items-center gap-1.5">
+-        <span v-if="i > 0" aria-hidden="true">‹</span>
+-        <NuxtLink v-if="item.to" :to="item.to" class="hover:text-brand-700">{{ item.label }}</NuxtLink>
++        <StoreIcon v-if="i > 0" name="chevronLeft" :size="14" class="text-slate-300" />
++        <NuxtLink v-if="item.to" :to="item.to" class="transition hover:text-brand-700">{{ item.label }}</NuxtLink>
+         <span v-else aria-current="page" class="text-slate-700">{{ item.label }}</span>
+       </li>
+     </ol>
+   </nav>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/CartButton.vue b/apps/storefront/app/components/CartButton.vue
+index 381cbb3..0a030d8 100644
+--- a/apps/storefront/app/components/CartButton.vue
++++ b/apps/storefront/app/components/CartButton.vue
+@@ -5,14 +5,10 @@ const { count } = useCart();
+ <template>
+   <NuxtLink
+     to="/cart"
+-    class="relative flex size-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-brand-700"
++    class="icon-btn"
+     :aria-label="count ? `سبد خرید، ${formatNumber(count)} کالا` : 'سبد خرید'"
+   >
+-    <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+-      <path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H6.2" />
+-      <circle cx="9.5" cy="20" r="1.2" />
+-      <circle cx="17" cy="20" r="1.2" />
+-    </svg>
++    <StoreIcon name="cart" :size="24" />
+     <span
+       v-if="count > 0"
+       class="absolute -end-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-xs font-bold text-on-brand"
+@@ -20,4 +16,4 @@ const { count } = useCart();
+       {{ formatNumber(count) }}
+     </span>
+   </NuxtLink>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/CategoryChips.vue b/apps/storefront/app/components/CategoryChips.vue
+new file mode 100644
+index 0000000..6463d7e
+--- /dev/null
++++ b/apps/storefront/app/components/CategoryChips.vue
+@@ -0,0 +1,28 @@
++<script setup lang="ts">
++import type { CategoryDto } from '@myapp/shared-types';
++
++defineProps<{
++  items: CategoryDto[];
++  /** چیپ «همه» که به /products می‌رود */
++  showAll?: boolean;
++  activeSlug?: string;
++}>();
++
++const base = 'rounded-full border px-4 py-1.5 text-sm transition';
++const idle = 'border-slate-300 bg-white hover:border-brand-500 hover:text-brand-700';
++const current = 'border-brand-600 bg-brand-600 text-on-brand';
++</script>
++
++<template>
++  <div v-if="items.length" class="flex flex-wrap gap-2">
++    <NuxtLink v-if="showAll" to="/products" :class="[base, activeSlug ? idle : current]">همه</NuxtLink>
++    <NuxtLink
++      v-for="c in items"
++      :key="c.id"
++      :to="`/categories/${encodeURIComponent(c.slug)}`"
++      :class="[base, c.slug === activeSlug ? current : idle]"
++    >
++      {{ c.name }}
++    </NuxtLink>
++  </div>
++</template>
+diff --git a/apps/storefront/app/components/ProductCard.vue b/apps/storefront/app/components/ProductCard.vue
+index 8d41600..286d44c 100644
+--- a/apps/storefront/app/components/ProductCard.vue
++++ b/apps/storefront/app/components/ProductCard.vue
+@@ -10,7 +10,7 @@ const discount = computed(() => discountInfo(props.product));
+ <template>
+   <NuxtLink
+     :to="`/products/${encodeURIComponent(product.slug)}`"
+-    class="group block overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:shadow-md"
++    class="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
+   >
+     <div class="relative aspect-square overflow-hidden bg-slate-100">
+       <img
+@@ -19,29 +19,34 @@ const discount = computed(() => discountInfo(props.product));
+         :alt="image.alt || product.title"
+         loading="lazy"
+         class="size-full object-cover transition duration-300 group-hover:scale-105"
+-        :class="!product.inStock && 'opacity-50'"
++        :class="!product.inStock && 'opacity-40 grayscale'"
+       />
+-      <div v-else class="flex size-full items-center justify-center text-sm text-slate-400">
+-        بدون تصویر
++      <div v-else class="flex size-full items-center justify-center text-slate-300">
++        <StoreIcon name="box" :size="44" />
+       </div>
+ 
+-      <span v-if="discount" class="badge absolute start-2 top-2 bg-red-600 text-white">
++      <span v-if="discount" class="badge absolute start-2 top-2 bg-rose-600 text-white shadow-sm">
+         {{ formatNumber(discount.percent) }}٪ تخفیف
+       </span>
+-      <span v-if="!product.inStock" class="badge absolute end-2 top-2 bg-slate-800 text-white">
++      <span
++        v-if="!product.inStock"
++        class="badge absolute inset-x-0 bottom-3 mx-auto w-fit bg-slate-800/90 px-3 text-white"
++      >
+         ناموجود
+       </span>
+     </div>
+ 
+-    <div class="space-y-1 p-3">
+-      <h3 class="line-clamp-2 min-h-10 text-sm font-medium">{{ product.title }}</h3>
+-      <div class="text-sm font-bold text-brand-700">
+-        <span v-if="product.minPrice !== product.maxPrice" class="font-normal text-slate-500">از </span>
+-        {{ formatPrice(product.minPrice) }}
+-      </div>
+-      <div v-if="discount" class="text-xs text-slate-400 line-through">
+-        {{ formatPrice(discount.compareAt) }}
++    <div class="flex flex-1 flex-col gap-1.5 p-3.5">
++      <h3 class="line-clamp-2 min-h-10 text-sm font-medium leading-5 text-slate-800">{{ product.title }}</h3>
++      <div class="mt-auto">
++        <div class="text-sm font-extrabold text-brand-700">
++          <span v-if="product.minPrice !== product.maxPrice" class="font-normal text-slate-500">از </span>
++          {{ formatPrice(product.minPrice) }}
++        </div>
++        <div v-if="discount" class="text-xs text-slate-400 line-through">
++          {{ formatPrice(discount.compareAt) }}
++        </div>
+       </div>
+     </div>
+   </NuxtLink>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/ProductListing.vue b/apps/storefront/app/components/ProductListing.vue
+index edb889d..03d41e8 100644
+--- a/apps/storefront/app/components/ProductListing.vue
++++ b/apps/storefront/app/components/ProductListing.vue
+@@ -22,14 +22,14 @@ function onSort(e: Event) {
+ 
+ <template>
+   <div class="space-y-6">
+-    <div class="flex flex-wrap items-center justify-between gap-3">
++    <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5">
+       <p class="text-sm text-slate-500">
+         {{ data ? `${formatNumber(data.meta.total)} محصول` : '' }}
+       </p>
+       <label class="flex items-center gap-2 text-sm text-slate-600">
+         <span>مرتب‌سازی:</span>
+         <select
+-          class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm"
++          class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+           :value="sort"
+           @change="onSort"
+         >
+@@ -38,17 +38,27 @@ function onSort(e: Event) {
+       </label>
+     </div>
+ 
+-    <p v-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-700">
+-      بارگذاری محصولات ناموفق بود. صفحه را دوباره بارگذاری کنید.
+-    </p>
++    <div v-if="error" class="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">
++      <StoreIcon name="alert" :size="32" class="mx-auto mb-2" />
++      <p class="mb-3">بارگذاری محصولات ناموفق بود.</p>
++      <button type="button" class="btn btn-secondary" @click="reloadNuxtApp()">تلاش مجدد</button>
++    </div>
+ 
+     <template v-else-if="data">
+-      <p
++      <div
+         v-if="!data.items.length"
+-        class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500"
++        class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center"
+       >
+-        {{ data.meta.total > 0 ? 'این صفحه محصولی ندارد.' : (emptyText ?? 'محصولی پیدا نشد.') }}
+-      </p>
++        <span class="mx-auto mb-4 grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
++          <StoreIcon :name="data.meta.total > 0 ? 'box' : 'search'" :size="28" />
++        </span>
++        <p class="font-medium text-slate-700">
++          {{ data.meta.total > 0 ? 'این صفحه محصولی ندارد.' : (emptyText ?? 'محصولی پیدا نشد.') }}
++        </p>
++        <NuxtLink v-if="route.path !== '/products' || data.meta.total > 0 || route.query.q" to="/products" class="btn btn-secondary mt-5">
++          مشاهده‌ی همه‌ی محصولات
++        </NuxtLink>
++      </div>
+ 
+       <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+         <ProductCard v-for="p in data.items" :key="p.id" :product="p" />
+@@ -57,4 +67,4 @@ function onSort(e: Event) {
+       <AppPagination :meta="data.meta" />
+     </template>
+   </div>
+-</template>
+\ No newline at end of file
++</template>
+diff --git a/apps/storefront/app/components/StoreIcon.vue b/apps/storefront/app/components/StoreIcon.vue
+new file mode 100644
+index 0000000..f898149
+--- /dev/null
++++ b/apps/storefront/app/components/StoreIcon.vue
+@@ -0,0 +1,34 @@
++<script setup lang="ts">
++const PATHS = {
++  search: ['M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z', 'm20 20-3.5-3.5'],
++  cart: ['M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H6.2', 'M9.5 20.5a.7.7 0 1 0 0-1.4.7.7 0 0 0 0 1.4ZM17 20.5a.7.7 0 1 0 0-1.4.7.7 0 0 0 0 1.4Z'],
++  user: ['M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z', 'M4 20a8 8 0 0 1 16 0'],
++  menu: ['M4 6h16M4 12h16M4 18h16'],
++  close: ['M6 6l12 12M18 6 6 18'],
++  chevronLeft: ['m15 6-6 6 6 6'],
++  chevronRight: ['m9 6 6 6-6 6'],
++  box: ['m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z', 'm4 7.5 8 4.5 8-4.5M12 12v9'],
++  alert: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', 'M12 8v5M12 16h.01'],
++} as const;
++
++export type StoreIconName = keyof typeof PATHS;
++
++const props = withDefaults(defineProps<{ name: StoreIconName; size?: number }>(), { size: 22 });
++const paths = computed(() => PATHS[props.name]);
++</script>
++
++<template>
++  <svg
++    :width="size"
++    :height="size"
++    viewBox="0 0 24 24"
++    fill="none"
++    stroke="currentColor"
++    stroke-width="1.7"
++    stroke-linecap="round"
++    stroke-linejoin="round"
++    aria-hidden="true"
++  >
++    <path v-for="d in paths" :key="d" :d="d" />
++  </svg>
++</template>
+diff --git a/apps/storefront/app/composables/useStoreCategories.ts b/apps/storefront/app/composables/useStoreCategories.ts
+new file mode 100644
+index 0000000..e05e4cd
+--- /dev/null
++++ b/apps/storefront/app/composables/useStoreCategories.ts
+@@ -0,0 +1,11 @@
++import type { CategoryDto } from '@myapp/shared-types';
++
++/** دسته‌بندی‌های فروشگاه؛ با یک کلید مشترک بین هدر، فوتر و صفحه‌ی محصولات. خطا نباید کل ویترین را بشکند. */
++export async function useStoreCategories() {
++  const api = useStorefrontApi();
++  const { data } = await useAsyncData('products-categories', () =>
++    api<CategoryDto[]>('/storefront/categories').catch(() => [] as CategoryDto[]),
++  );
++  const roots = computed(() => visibleRootCategories(data.value ?? []));
++  return { categories: data, roots };
++}
+diff --git a/apps/storefront/app/layouts/default.vue b/apps/storefront/app/layouts/default.vue
+index c54ecdf..9aec006 100644
+--- a/apps/storefront/app/layouts/default.vue
++++ b/apps/storefront/app/layouts/default.vue
+@@ -1,19 +1,42 @@
+ <script setup lang="ts">
+ const store = useStore();
++const route = useRoute();
++const { roots } = await useStoreCategories();
+ 
+-const links = [
+-  { to: '/', label: 'خانه', exact: true },
+-  { to: '/products', label: 'محصولات', exact: false },
+-];
+-
+-const activeClass = 'text-brand-700 font-semibold';
+ const initial = computed(() => [...(store.value?.name ?? '?')][0]);
++const navCategories = computed(() => roots.value.slice(0, 6));
++const footerCategories = computed(() => roots.value.slice(0, 6));
++
++const menuOpen = ref(false);
++watch(
++  () => route.fullPath,
++  () => (menuOpen.value = false),
++);
++
++function onKeydown(e: KeyboardEvent) {
++  if (e.key === 'Escape') menuOpen.value = false;
++}
++onMounted(() => window.addEventListener('keydown', onKeydown));
++onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
++
++const linkClass = 'rounded-lg px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-brand-700';
++const activeClass = '!text-brand-700 font-semibold';
+ </script>
+ 
+ <template>
+   <div class="flex min-h-screen flex-col">
+     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+-      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
++      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3">
++        <button
++          type="button"
++          class="icon-btn lg:hidden"
++          aria-label="منو"
++          :aria-expanded="menuOpen"
++          @click="menuOpen = true"
++        >
++          <StoreIcon name="menu" />
++        </button>
++
+         <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
+           <img
+             v-if="store?.logoUrl"
+@@ -30,37 +53,123 @@ const initial = computed(() => [...(store.value?.name ?? '?')][0]);
+           <span class="truncate text-lg font-extrabold">{{ store?.name }}</span>
+         </NuxtLink>
+ 
+-        <div class="order-3 w-full sm:order-none sm:ms-auto sm:w-72">
++        <div class="order-last w-full md:order-none md:mx-auto md:w-auto md:max-w-md md:flex-1">
+           <SearchBox />
+         </div>
+ 
+-        <nav class="ms-auto flex items-center gap-4 text-sm text-slate-600 sm:ms-0">
+-          <NuxtLink
+-            v-for="link in links"
+-            :key="link.to"
+-            :to="link.to"
+-            class="hover:text-brand-700"
+-            :active-class="link.exact ? '' : activeClass"
+-            :exact-active-class="activeClass"
+-          >
+-            {{ link.label }}
+-          </NuxtLink>
++        <div class="ms-auto flex items-center gap-1 md:ms-0">
+           <AccountLink />
+           <CartButton />
+-        </nav>
++        </div>
+       </div>
++
++      <!-- نوار دسته‌بندی (دسکتاپ) -->
++      <nav class="hidden border-t border-slate-100 lg:block" aria-label="دسته‌بندی‌ها">
++        <div class="mx-auto flex max-w-6xl items-center gap-1 px-4 py-1.5">
++          <NuxtLink to="/" :class="linkClass" exact-active-class="!text-brand-700 font-semibold">خانه</NuxtLink>
++          <NuxtLink to="/products" :class="linkClass" :exact-active-class="activeClass">همه‌ی محصولات</NuxtLink>
++          <NuxtLink
++            v-for="c in navCategories"
++            :key="c.id"
++            :to="`/categories/${encodeURIComponent(c.slug)}`"
++            :class="linkClass"
++            :active-class="activeClass"
++          >
++            {{ c.name }}
++          </NuxtLink>
++        </div>
++      </nav>
+     </header>
+ 
++    <!-- منوی موبایل -->
++    <div v-if="menuOpen" class="fixed inset-0 z-50 lg:hidden">
++      <div class="absolute inset-0 bg-slate-900/50" @click="menuOpen = false" />
++      <nav
++        class="absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col gap-1 overflow-y-auto bg-white p-4 shadow-xl"
++        aria-label="منوی اصلی"
++      >
++        <div class="mb-3 flex items-center justify-between">
++          <span class="truncate text-lg font-extrabold">{{ store?.name }}</span>
++          <button type="button" class="icon-btn" aria-label="بستن منو" @click="menuOpen = false">
++            <StoreIcon name="close" />
++          </button>
++        </div>
++        <NuxtLink to="/" :class="linkClass" exact-active-class="!text-brand-700 font-semibold">خانه</NuxtLink>
++        <NuxtLink to="/products" :class="linkClass" :exact-active-class="activeClass">همه‌ی محصولات</NuxtLink>
++        <template v-if="roots.length">
++          <div class="mt-3 px-3 text-xs font-medium text-slate-400">دسته‌بندی‌ها</div>
++          <NuxtLink
++            v-for="c in roots"
++            :key="c.id"
++            :to="`/categories/${encodeURIComponent(c.slug)}`"
++            :class="linkClass"
++            :active-class="activeClass"
++          >
++            {{ c.name }}
++          </NuxtLink>
++        </template>
++        <div class="mt-3 px-3 text-xs font-medium text-slate-400">حساب کاربری</div>
++        <NuxtLink to="/orders" :class="linkClass" :active-class="activeClass">سفارش‌های من</NuxtLink>
++        <NuxtLink to="/cart" :class="linkClass" :active-class="activeClass">سبد خرید</NuxtLink>
++      </nav>
++    </div>
++
+     <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+       <slot />
+     </main>
+ 
+-    <footer class="border-t border-slate-200 bg-white">
+-      <div
+-        class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row"
+-      >
+-        <span>© {{ formatYear() }} {{ store?.name }}</span>
+-        <span>قدرت‌گرفته از پلتفرم فروشگاه‌ساز</span>
++    <footer class="mt-8 border-t border-slate-200 bg-white">
++      <div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
++        <div class="space-y-3 lg:col-span-2">
++          <div class="flex items-center gap-3">
++            <img
++              v-if="store?.logoUrl"
++              :src="store.logoUrl"
++              :alt="store.name"
++              class="h-9 w-auto max-w-28 object-contain"
++              loading="lazy"
++            />
++            <span
++              v-else
++              class="flex size-9 items-center justify-center rounded-xl bg-brand-600 font-extrabold text-on-brand"
++            >
++              {{ initial }}
++            </span>
++            <span class="text-lg font-extrabold">{{ store?.name }}</span>
++          </div>
++          <p v-if="store?.description" class="line-clamp-3 max-w-md text-sm leading-7 text-slate-500">
++            {{ store.description }}
++          </p>
++        </div>
++
++        <div>
++          <h2 class="mb-3 text-sm font-bold">دسترسی سریع</h2>
++          <ul class="space-y-2 text-sm text-slate-500">
++            <li><NuxtLink to="/products" class="transition hover:text-brand-700">همه‌ی محصولات</NuxtLink></li>
++            <li><NuxtLink to="/cart" class="transition hover:text-brand-700">سبد خرید</NuxtLink></li>
++            <li><NuxtLink to="/orders" class="transition hover:text-brand-700">سفارش‌های من</NuxtLink></li>
++          </ul>
++        </div>
++
++        <div v-if="footerCategories.length">
++          <h2 class="mb-3 text-sm font-bold">دسته‌بندی‌ها</h2>
++          <ul class="space-y-2 text-sm text-slate-500">
++            <li v-for="c in footerCategories" :key="c.id">
++              <NuxtLink :to="`/categories/${encodeURIComponent(c.slug)}`" class="transition hover:text-brand-700">
++                {{ c.name }}
++              </NuxtLink>
++            </li>
++          </ul>
++        </div>
++      </div>
++
++      <div class="border-t border-slate-100">
++        <div
++          class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-1 px-4 py-4 text-xs text-slate-400 sm:flex-row"
++        >
++          <span>© {{ formatYear() }} {{ store?.name }}</span>
++          <span>قدرت‌گرفته از پلتفرم فروشگاه‌ساز</span>
++        </div>
+       </div>
+     </footer>
+   </div>
+diff --git a/apps/storefront/app/pages/categories/[slug].vue b/apps/storefront/app/pages/categories/[slug].vue
+index d588fdb..3cfa976 100644
+--- a/apps/storefront/app/pages/categories/[slug].vue
++++ b/apps/storefront/app/pages/categories/[slug].vue
+@@ -74,22 +74,13 @@ useHead(() => {
+     <Breadcrumbs :items="crumbs" />
+ 
+     <header>
+-      <h1 class="text-2xl font-extrabold">{{ detail.category.name }}</h1>
++      <h1 class="text-2xl font-extrabold sm:text-3xl">{{ detail.category.name }}</h1>
+       <p v-if="detail.category.description" class="mt-2 max-w-2xl text-slate-600">
+         {{ detail.category.description }}
+       </p>
+     </header>
+ 
+-    <div v-if="subcategories.length" class="flex flex-wrap gap-2">
+-      <NuxtLink
+-        v-for="c in subcategories"
+-        :key="c.id"
+-        :to="`/categories/${encodeURIComponent(c.slug)}`"
+-        class="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm transition hover:border-brand-500 hover:text-brand-700"
+-      >
+-        {{ c.name }}
+-      </NuxtLink>
+-    </div>
++    <CategoryChips :items="subcategories" />
+ 
+     <ProductListing
+       :data="products"
+diff --git a/apps/storefront/app/pages/products/index.vue b/apps/storefront/app/pages/products/index.vue
+index 62ad1cb..0a785f3 100644
+--- a/apps/storefront/app/pages/products/index.vue
++++ b/apps/storefront/app/pages/products/index.vue
+@@ -1,16 +1,10 @@
+ <script setup lang="ts">
+-import type { CategoryDto } from '@myapp/shared-types';
+-
+ const store = useStore();
+-const api = useStorefrontApi();
+ const siteUrl = useSiteUrl();
+ 
+ const { data, error, filters } = await useProductListing({ key: 'products' });
+ 
+-const { data: categories } = await useAsyncData('products-categories', () =>
+-  api<CategoryDto[]>('/storefront/categories'),
+-);
+-const rootCategories = computed(() => visibleRootCategories(categories.value ?? []));
++const { roots: rootCategories } = await useStoreCategories();
+ 
+ const heading = computed(() =>
+   filters.value.q ? `نتایج جستجو برای «${filters.value.q}»` : 'همه‌ی محصولات',
+@@ -43,18 +37,12 @@ useHead(() => ({
+   <div class="space-y-6">
+     <Breadcrumbs :items="[{ label: 'خانه', to: '/' }, { label: 'محصولات' }]" />
+ 
+-    <h1 class="text-2xl font-extrabold">{{ heading }}</h1>
++    <header class="flex flex-wrap items-end justify-between gap-3">
++      <h1 class="text-2xl font-extrabold sm:text-3xl">{{ heading }}</h1>
++      <NuxtLink v-if="filters.q" to="/products" class="btn btn-ghost btn-sm">پاک کردن جستجو</NuxtLink>
++    </header>
+ 
+-    <div v-if="rootCategories.length" class="flex flex-wrap gap-2">
+-      <NuxtLink
+-        v-for="c in rootCategories"
+-        :key="c.id"
+-        :to="`/categories/${encodeURIComponent(c.slug)}`"
+-        class="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-sm transition hover:border-brand-500 hover:text-brand-700"
+-      >
+-        {{ c.name }}
+-      </NuxtLink>
+-    </div>
++    <CategoryChips :items="rootCategories" show-all />
+ 
+     <ProductListing
+       :data="data"
+@@ -63,4 +51,4 @@ useHead(() => ({
+       :empty-text="filters.q ? 'محصولی با این عبارت پیدا نشد. عبارت دیگری را امتحان کنید.' : 'این فروشگاه هنوز محصولی ندارد.'"
+     />
+   </div>
+-</template>
+\ No newline at end of file
++</template>

@@ -6,7 +6,7 @@ defineProps<{ blocks: PageBlock[] }>();
 
 <template>
   <!-- نگاشت صریح نوع ← کامپوننت؛ بلاک با نوع ناشناخته (نسخه‌ی جدیدتر داده) ساده نادیده گرفته می‌شود -->
-  <div class="space-y-10">
+  <div class="space-y-12">
     <template v-for="(block, i) in blocks" :key="block.id">
       <BlockHero v-if="block.type === 'hero'" :block="block" :primary="i === 0" />
       <BlockProductGrid v-else-if="block.type === 'product-grid'" :block="block" />

@@ -17,9 +17,9 @@ const pages = computed(() => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 });
 
-const base = 'rounded-lg border px-3 py-1.5 text-sm transition';
+const base = 'inline-flex min-w-10 items-center justify-center gap-1 rounded-lg border px-3 py-2 text-sm transition';
 const idle = 'border-slate-300 bg-white hover:border-brand-500 hover:text-brand-700';
-const current = 'border-brand-600 bg-brand-600 text-on-brand';
+const current = 'border-brand-600 bg-brand-600 font-bold text-on-brand';
 </script>
 
 <template>
@@ -34,6 +34,7 @@ const current = 'border-brand-600 bg-brand-600 text-on-brand';
       rel="prev"
       :class="[base, idle]"
     >
+      <StoreIcon name="chevronRight" :size="16" />
       قبلی
     </NuxtLink>
 
@@ -49,6 +50,7 @@ const current = 'border-brand-600 bg-brand-600 text-on-brand';
 
     <NuxtLink v-if="meta.page < meta.totalPages" :to="linkTo(meta.page + 1)" rel="next" :class="[base, idle]">
       بعدی
+      <StoreIcon name="chevronLeft" :size="16" />
     </NuxtLink>
   </nav>
 </template>
