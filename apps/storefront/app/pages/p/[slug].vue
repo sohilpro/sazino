@@ -33,7 +33,13 @@ useHead(() => ({ link: page.value?.preview ? [] : [{ rel: 'canonical', href: can
 <template>
   <div v-if="page" class="space-y-8">
     <PreviewBanner v-if="page.preview" />
-    <h1 v-if="!startsWithHero" class="text-3xl font-extrabold">{{ page.title }}</h1>
+    <Breadcrumbs :items="[{ label: 'خانه', to: '/' }, { label: page.title }]" />
+
+    <header v-if="!startsWithHero" class="space-y-3 pb-2 text-center">
+      <h1 class="text-3xl font-extrabold leading-tight sm:text-4xl">{{ page.title }}</h1>
+      <span class="mx-auto block h-1 w-14 rounded-full bg-brand-600" aria-hidden="true" />
+    </header>
+
     <BlockRenderer :blocks="page.blocks" />
   </div>
 </template>
