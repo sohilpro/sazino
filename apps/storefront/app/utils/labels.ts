@@ -26,6 +26,13 @@ export const ORDER_STATUS_CLASS: Record<OrderStatus, string> = {
   CANCELED: 'bg-slate-200 text-slate-600',
 };
 
+export const ORDER_STATUS_DOT: Record<OrderStatus, string> = {
+  PENDING: 'bg-amber-500',
+  PAID: 'bg-emerald-500',
+  SHIPPED: 'bg-sky-500',
+  CANCELED: 'bg-slate-400',
+};
+
 export const CANCEL_REASON_LABEL: Record<string, string> = {
   CUSTOMER: 'لغو توسط شما',
   EXPIRED: 'پرداخت در مهلت مقرر انجام نشد',

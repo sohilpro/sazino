@@ -82,16 +82,23 @@ function editPhone() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-md">
-    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 class="mb-1 text-2xl font-extrabold">ورود یا ثبت‌نام</h1>
-      <p class="mb-6 text-sm text-slate-500">
-        {{ step === 'phone' ? 'شماره‌ی موبایل خود را وارد کنید تا کد تأیید برایتان پیامک شود.' : `کد ۶ رقمی به ${phone} ارسال شد.` }}
-      </p>
+  <div class="mx-auto max-w-md pt-4 sm:pt-10">
+    <div class="card space-y-6 !p-6 sm:!p-8">
+      <div class="space-y-3 text-center">
+        <span class="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
+          <StoreIcon :name="step === 'phone' ? 'user' : 'lock'" :size="28" />
+        </span>
+        <div>
+          <h1 class="text-2xl font-extrabold">ورود یا ثبت‌نام</h1>
+          <p class="mt-1 text-sm leading-7 text-slate-500">
+            {{ step === 'phone' ? 'شماره‌ی موبایل خود را وارد کنید تا کد تأیید برایتان پیامک شود.' : `کد ۶ رقمی به ${phone} ارسال شد.` }}
+          </p>
+        </div>
+      </div>
 
       <form v-if="step === 'phone'" class="space-y-4" novalidate @submit.prevent="sendCode">
         <label class="block">
-          <span class="mb-1 block text-sm font-medium text-slate-700">شماره‌ی موبایل</span>
+          <span class="label">شماره‌ی موبایل</span>
           <input
             v-model="phone"
             type="tel"
@@ -99,18 +106,19 @@ function editPhone() {
             dir="ltr"
             autocomplete="tel"
             placeholder="09123456789"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            class="input !py-3 text-center text-lg"
           />
         </label>
         <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
-        <button type="submit" class="btn btn-primary w-full" :disabled="loading">
+        <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
           {{ loading ? 'در حال ارسال…' : 'دریافت کد تأیید' }}
         </button>
+        <p class="text-center text-xs text-slate-500">برای ورود به رمز عبور نیازی نیست؛ کد پیامکی کافی است.</p>
       </form>
 
       <form v-else class="space-y-4" novalidate @submit.prevent="submitCode">
         <label class="block">
-          <span class="mb-1 block text-sm font-medium text-slate-700">کد تأیید</span>
+          <span class="label">کد تأیید</span>
           <input
             v-model="code"
             inputmode="numeric"
@@ -118,21 +126,21 @@ function editPhone() {
             dir="ltr"
             maxlength="6"
             placeholder="------"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-center text-xl tracking-[0.5em] focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            class="input !py-3 text-center text-2xl font-bold tracking-[0.6em]"
           />
         </label>
         <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
-        <button type="submit" class="btn btn-primary w-full" :disabled="loading">
+        <button type="submit" class="btn btn-primary btn-lg w-full" :disabled="loading">
           {{ loading ? 'در حال بررسی…' : 'ورود' }}
         </button>
 
         <div class="flex items-center justify-between text-sm">
-          <button type="button" class="text-slate-500 hover:text-brand-700" @click="editPhone">
+          <button type="button" class="text-slate-500 transition hover:text-brand-700" @click="editPhone">
             ویرایش شماره
           </button>
           <button
             type="button"
-            class="text-brand-700 disabled:text-slate-400"
+            class="font-medium text-brand-700 disabled:font-normal disabled:text-slate-400"
             :disabled="resendIn > 0 || loading"
             @click="sendCode"
           >

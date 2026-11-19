@@ -43,6 +43,8 @@ async function save() {
   }
 }
 
+const initial = computed(() => [...(customer.value?.name?.trim() || customer.value?.phone || '?')][0]);
+
 async function onLogout() {
   await logout();
   await navigateTo('/');
@@ -50,36 +52,71 @@ async function onLogout() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-lg space-y-6">
-    <h1 class="text-2xl font-extrabold">حساب من</h1>
+  <div class="mx-auto max-w-3xl space-y-6">
+    <h1 class="text-2xl font-extrabold sm:text-3xl">حساب من</h1>
 
-    <div
-      v-if="customer"
-      class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
-      <div>
-        <div class="text-sm text-slate-500">شماره‌ی موبایل</div>
-        <div class="font-medium" dir="ltr">{{ customer.phone }}</div>
+    <div v-if="customer" class="space-y-6">
+      <section class="card flex items-center gap-4">
+        <span class="grid size-16 shrink-0 place-items-center rounded-full bg-brand-600 text-2xl font-extrabold text-on-brand">
+          {{ initial }}
+        </span>
+        <div class="min-w-0">
+          <div class="truncate text-lg font-bold">{{ customer.name || 'نام شما ثبت نشده' }}</div>
+          <div class="text-sm text-slate-500" dir="ltr">{{ customer.phone }}</div>
+        </div>
+      </section>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <NuxtLink to="/orders" class="card flex items-center gap-3 !p-4 transition hover:border-brand-500">
+          <span class="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
+            <StoreIcon name="orders" :size="22" />
+          </span>
+          <span>
+            <span class="block font-bold">سفارش‌های من</span>
+            <span class="block text-xs text-slate-500">پیگیری و مشاهده‌ی خریدها</span>
+          </span>
+        </NuxtLink>
+        <NuxtLink to="/cart" class="card flex items-center gap-3 !p-4 transition hover:border-brand-500">
+          <span class="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
+            <StoreIcon name="cart" :size="22" />
+          </span>
+          <span>
+            <span class="block font-bold">سبد خرید</span>
+            <span class="block text-xs text-slate-500">ادامه‌ی خرید</span>
+          </span>
+        </NuxtLink>
       </div>
 
-      <form class="space-y-3" novalidate @submit.prevent="save">
-        <label class="block">
-          <span class="mb-1 block text-sm font-medium text-slate-700">نام و نام خانوادگی</span>
-          <input
-            v-model="name"
-            maxlength="60"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-          />
-        </label>
-        <p v-if="error" class="text-sm text-red-700" role="alert">{{ error }}</p>
-        <p v-if="message" class="text-sm text-emerald-700" role="status">{{ message }}</p>
-        <button type="submit" class="btn btn-primary" :disabled="saving">ذخیره</button>
-      </form>
+      <section class="card space-y-4">
+        <h2 class="text-lg font-bold">اطلاعات حساب</h2>
+        <form class="space-y-3" novalidate @submit.prevent="save">
+          <label class="block">
+            <span class="label">نام و نام خانوادگی</span>
+            <input v-model="name" maxlength="60" class="input" autocomplete="name" />
+          </label>
+          <p v-if="error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
+          <p v-if="message" class="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
+            {{ message }}
+          </p>
+          <button type="submit" class="btn btn-primary" :disabled="saving">
+            {{ saving ? 'در حال ذخیره…' : 'ذخیره' }}
+          </button>
+        </form>
+      </section>
 
-      <NuxtLink to="/orders" class="btn btn-secondary">سفارش‌های من</NuxtLink>
-
-      <button type="button" class="btn btn-secondary" @click="onLogout">خروج از حساب</button>
+      <button
+        type="button"
+        class="btn btn-ghost w-full text-red-600 hover:!bg-red-50 sm:w-auto"
+        @click="onLogout"
+      >
+        <StoreIcon name="logout" :size="18" />
+        خروج از حساب
+      </button>
     </div>
-    <p v-else class="text-slate-500">در حال بارگذاری…</p>
+
+    <div v-else class="space-y-4" aria-busy="true">
+      <div class="h-24 animate-pulse rounded-2xl bg-slate-200/70" />
+      <div class="h-56 animate-pulse rounded-2xl bg-slate-200/70" />
+    </div>
   </div>
 </template>
