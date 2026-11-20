@@ -1,6 +1,19 @@
 import type { StoreInfo } from '@myapp/shared-types';
 
-export default defineNuxtRouteMiddleware(async () => {
+export default defineNuxtRouteMiddleware(async (to) => {
+  const isPlatform = useIsPlatform();
+
+  // اگر کاربر در هاست اصلی پلتفرم (سازینو) است:
+  if (isPlatform.value) {
+    // مسیر اصلی '/' صفحه لندینگ پلتفرم است و نیازی به واکشی اطلاعات فروشگاه ندارد.
+    // اگر کاربر مسیرهای اختصاصی فروشگاه (مانند محصولات، سبد خرید، حساب کاربری و ...) را
+    // در هاست اصلی پلتفرم بدون ساب‌دامین باز کند، به صفحه اصلی هدایت می‌شود.
+    if (to.path !== '/' && to.path !== '/preview') {
+      return navigateTo('/');
+    }
+    return;
+  }
+
   const store = useStore();
   if (store.value) return; // قبلاً (در SSR یا همین بازدید) بارگذاری شده
 

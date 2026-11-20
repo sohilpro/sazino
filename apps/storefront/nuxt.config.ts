@@ -21,6 +21,8 @@ export default defineNuxtConfig({
     sentryDsn: '', // NUXT_SENTRY_DSN (سمت سرور)
     public: {
       sentryDsn: '', // NUXT_PUBLIC_SENTRY_DSN (مرورگر)
+      platformDomain: process.env.PLATFORM_DOMAIN || 'localhost',
+      dashboardUrl: process.env.DASHBOARD_URL || 'http://localhost:3001',
     },
   },
   routeRules: {

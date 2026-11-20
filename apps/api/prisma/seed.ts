@@ -291,12 +291,26 @@ async function main() {
 
     const tenant = await prisma.tenant.upsert({
       where: { subdomain: s.subdomain },
-      update: { settings },
+      update: { settings, status: 'ACTIVE' },
       create: {
         name: s.name,
         subdomain: s.subdomain,
         plan: s.plan,
         settings,
+      },
+    });
+
+    // مالک فروشگاه: ورود به پنل با همین حساب انجام می‌شود (قبلاً ساخته نمی‌شد و فقط ویراستار بود).
+    // رمز هر بار به رمز dev برمی‌گردد تا ورود همیشه کار کند؛ seed هرگز در production اجرا نمی‌شود.
+    await prisma.user.upsert({
+      where: { email: s.owner.email },
+      update: { tenantId: tenant.id, role: 'OWNER', passwordHash, isActive: true },
+      create: {
+        tenantId: tenant.id,
+        email: s.owner.email,
+        name: s.owner.name,
+        passwordHash,
+        role: 'OWNER',
       },
     });
 
@@ -357,7 +371,10 @@ async function main() {
   await seedPlans();
   await seedPlatformAdmin();
 
-  console.log(`\nDev password for all users: ${DEV_PASSWORD}`);
+  console.log(`\nDev logins (password for all: ${DEV_PASSWORD}):`);
+  for (const s of stores) {
+    console.log(`  ${s.subdomain}: owner ${s.owner.email} · editor ${s.editor.email}`);
+  }
 }
 
 main()

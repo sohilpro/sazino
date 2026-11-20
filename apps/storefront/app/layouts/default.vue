@@ -1,7 +1,12 @@
 <script setup lang="ts">
+const isPlatform = useIsPlatform();
 const store = useStore();
 const route = useRoute();
-const { roots } = await useStoreCategories();
+
+// اگر در هاست پلتفرم هستیم، نیازی به واکشی دسته‌بندی‌های فروشگاه نیست
+const { roots } = isPlatform.value
+  ? { roots: ref([]) }
+  : await useStoreCategories();
 
 const initial = computed(() => [...(store.value?.name ?? '?')][0]);
 const navCategories = computed(() => roots.value.slice(0, 6));
@@ -24,7 +29,13 @@ const activeClass = '!text-brand-700 font-semibold';
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col">
+  <!-- حالت هاست پلتفرم سازینو: لایوت کامل صفحه لندینگ پلتفرم -->
+  <div v-if="isPlatform" class="min-h-screen bg-slate-50">
+    <slot />
+  </div>
+
+  <!-- حالت هاست فروشگاه: هدر، ناوبری، محتوا و فوتر اختصاصی فروشگاه -->
+  <div v-else class="flex min-h-screen flex-col">
     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3">
         <button

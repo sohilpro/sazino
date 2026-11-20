@@ -43,6 +43,9 @@ const info = computed(
     },
 );
 
+// در توسعه، دلیل رایج ۴۰۴ باز کردن localhost بدون ساب‌دامین فروشگاه است
+const showDevHint = computed(() => import.meta.dev && statusCode.value === 404);
+
 const canRetry = computed(() => statusCode.value >= 500);
 const canBrowse = computed(() => statusCode.value === 404 && Boolean(store.value));
 
@@ -81,6 +84,15 @@ const goProducts = () => clearError({ redirect: '/products' });
 
         <h1 class="mb-2 text-xl font-extrabold sm:text-2xl">{{ info.title }}</h1>
         <p class="mb-8 text-sm leading-7 text-slate-600">{{ info.text }}</p>
+
+        <p
+          v-if="showDevHint"
+          class="mb-6 rounded-xl bg-amber-50 p-3 text-start text-xs leading-6 text-amber-900"
+          dir="ltr"
+        >
+          dev: stores are resolved by host. Open a store via its subdomain, e.g.
+          <b>http://demo.localhost:3000</b> (not http://localhost:3000).
+        </p>
 
         <div class="flex flex-col justify-center gap-3 sm:flex-row">
           <button type="button" class="btn btn-primary btn-lg" @click="goHome">بازگشت به صفحه‌ی اصلی</button>
